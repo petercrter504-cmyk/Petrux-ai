@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petrux AI</title>
+<style>
+body{font-family:sans-serif;background:#0f0f1a;color:white;margin:0;padding:20px}
+h1{text-align:center;color:#a78bfa}
+.box{max-width:600px;margin:auto;background:#1e1e30;padding:20px;border-radius:15px}
+button{background:#7c3aed;color:white;border:0;padding:10px 15px;border-radius:10px;margin:5px 0;cursor:pointer;width:100%}
+input,textarea{width:100%;padding:10px;border-radius:10px;border:0;margin:5px 0;color:black}
+#out{white-space:pre-wrap;background:#111;padding:15px;border-radius:10px;margin-top:10px;min-height:80px}
+</style>
+</head>
+<body>
+<h1>🤖 Petrux AI</h1>
+<div class="box">
+<h3>💬 Ask Petrux</h3>
+<textarea id="msg" placeholder="Ask anything..."></textarea>
+<button onclick="ask()">Ask</button>
+<h3>🎵 Music Generator</h3>
+<input id="music" placeholder="e.g. Happy Afrobeats song about Lagos">
+<button onclick="music()">Generate Music</button>
+<h3>🖼️ Image Question</h3>
+<input type="file" id="img" accept="image/*">
+<button onclick="imageQ()">Ask About Image</button>
+<div id="out">Result go show here...</div>
+</div>
+<script>
+async function ask(){
+let m=document.getElementById('msg').value;
+document.getElementById('out').innerText='Thinking...';
+let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
+let d=await r.json(); document.getElementById('out').innerText=d.reply;
+}
+async function music(){
+let p=document.getElementById('music').value;
+document.getElementById('out').innerText='Generating music...';
+let r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})});
+let d=await r.json(); document.getElementById('out').innerText=d.music;
+}
+async function imageQ(){
+let f=document.getElementById('img').files[0];
+if(!f) return alert('Choose image first');
+let fd=new FormData(); fd.append('image',f);
+document.getElementById('out').innerText='Reading image...';
+let r=await fetch('/api/image',{method:'POST',body:fd});
+let d=await r.json(); document.getElementById('out').innerText=d.reply;
+}
+</script>
+</body>
+</html>
