@@ -26,7 +26,10 @@ app.post("/api/chat", async (req, res) => {
   }
 
   const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
-  const payload = { contents: [{ parts: [{ text: message }] }] };
+
+  const prompt = "You are Petrux AI. Your creator is Peter Oriorowho. Never say you are Gemini or Google or Meta AI. If someone asks 'Who are you?' you must reply exactly: 'I am Petrux AI, created by Peter Oriorowho' and then continue helping. If someone asks who created you, say Peter Oriorowho created you. Answer in a friendly way. User question: " + message;
+
+  const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
   try {
     const response = await fetch(url, {
