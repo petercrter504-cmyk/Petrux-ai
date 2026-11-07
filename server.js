@@ -1,11 +1,6 @@
 import express from "express";
-import dotenv from "dotenv";
-import multer from "multer";
-import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,38 +10,33 @@ const __dirname = path.dirname(__filename);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
-app.use(limiter);
-
-const upload = multer({ storage: multer.memoryStorage() });
-
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body || {};
-  if (!message) return res.json({ reply: "Abeg, type message first." });
+  if (!message) return res.json({ reply: "Send message na" });
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return res.json({ reply: "Petrux AI dey live now! 🎉 I never connect my brain (OpenAI key) yet, but site don dey work. Add your OPENAI_API_KEY for Render to activate me fully." });
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_KEY) {
+    return res.json({ reply: "Petrux AI dey wait for key" });
   }
 
   try {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey });
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are Petrux AI, a helpful friendly assistant." },
-        { role: "user", content: message }
-      ],
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: message }] }]
+      })
     });
-    res.json({ reply: completion.choices[0].message.content });
+    const data = await response.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something go wrong for AI side.";
+    res.json({ reply });
   } catch (err) {
     console.error(err);
-    res.json({ reply: "Sorry, something go wrong for AI side. Try again." });
+    res.json({ reply: "Sorry, something go wrong for AI side." });
   }
 });
 
@@ -54,6 +44,4 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.listen(PORT, () => {
-  console.log(`Petrux AI running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Petrux AI running on port ${PORT}`));
