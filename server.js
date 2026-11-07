@@ -1,14 +1,10 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-
+const express = require("express");
+const path = require("path");
 const app = express();
-const PORT = process.env.PORT || 3000;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 10000;
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.static("public"));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
@@ -31,17 +27,21 @@ app.post("/api/chat", async (req, res) => {
         contents: [{ parts: [{ text: message }] }]
       })
     });
+
     const data = await response.json();
+    console.log("GEMINI STATUS:", response.status);
+    console.log("GEMINI RESPONSE:", JSON.stringify(data).slice(0, 1000));
+    if (data.error) {
+      return res.json({ reply: "Gemini error: " + data.error.message });
+    }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something go wrong for AI side.";
     res.json({ reply });
   } catch (err) {
-    console.error(err);
-    res.json({ reply: "Sorry, something go wrong for AI side." });
+    console.log("SERVER ERROR:", err.message);
+    res.json({ reply: "Server error: " + err.message });
   }
 });
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.listen(PORT, () => {
+  console.log("Petrux AI running on port " + PORT);
 });
-
-app.listen(PORT, () => console.log(`Petrux AI running on port ${PORT}`));
