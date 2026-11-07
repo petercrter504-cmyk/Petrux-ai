@@ -2,51 +2,128 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Petrux AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Petrux AI - Created by Peter Oriorowho</title>
 <style>
-body{font-family:sans-serif;background:#0f0f1a;color:white;margin:0;padding:20px}
-h1{text-align:center;color:#a78bfa}
-.box{max-width:600px;margin:auto;background:#1e1e30;padding:20px;border-radius:15px}
-button{background:#7c3aed;color:white;border:0;padding:10px 15px;border-radius:10px;margin:5px 0;cursor:pointer;width:100%}
-input,textarea{width:100%;padding:10px;border-radius:10px;border:0;margin:5px 0;color:black}
-#out{white-space:pre-wrap;background:#111;padding:15px;border-radius:10px;margin-top:10px;min-height:80px}
+    * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Arial, sans-serif; color: white;
+    /* NEW BACKGROUND - Purple Neon */
+    background: linear-gradient(180deg, #0f0522 0%, #2a0a5e 45%, #6a00ff 100%);
+    background-attachment: fixed;
+    min-height: 100vh; padding: 16px;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 32px; margin: 10px 0 4px; }
+  p.sub { text-align: center; opacity: 0.85; margin: 0 0 18px; font-size: 14px; }
+  .card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 16px; backdrop-filter: blur(10px); }
+  /* BIGGER / LONGER SEARCH BAR */
+  #userInput {
+    width: 100%; min-height: 150px; padding: 16px;
+    font-size: 17px; border-radius: 16px; border: none;
+    outline: none; resize: vertical; font-family: Arial;
+  }
+  .modes { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+  .modes button {
+    flex: 1; padding: 12px; border-radius: 999px; border: 2px solid white;
+    background: transparent; color: white; font-weight: bold; cursor: pointer; font-size: 14px;
+  }
+  .modes button.active { background: white; color: #4a00e0; }
+  /* FILE UPLOAD UNDER ASK BAR */
+  .upload-box {
+    background: rgba(0,0,0,0.25); border: 2px dashed rgba(255,255,255,0.6);
+    border-radius: 14px; padding: 14px; text-align: center; margin: 8px 0;
+  }
+  .upload-box input { color: white; width: 100%; }
+  .upload-box small { opacity: 0.8; }
+  #fileName { font-size: 13px; margin-top: 6px; color: #ffe082; }
+  #askBtn {
+    width: 100%; padding: 16px; font-size: 18px; font-weight: bold;
+    background: #a100f2; color: white; border: none; border-radius: 14px; cursor: pointer; margin-top: 10px;
+  }
+  #answer {
+    margin-top: 16px; background: #1a1a1a; color: white; padding: 18px;
+    border-radius: 16px; min-height: 150px; white-space: pre-wrap; line-height: 1.6; font-size: 16px;
+  }
+  .footer { text-align: center; font-size: 12px; opacity: 0.7; margin-top: 14px; }
 </style>
 </head>
 <body>
-<h1>🤖 Petrux AI</h1>
-<div class="box">
-<h3>💬 Ask Petrux</h3>
-<textarea id="msg" placeholder="Ask anything..."></textarea>
-<button onclick="ask()">Ask</button>
-<h3>🎵 Music Generator</h3>
-<input id="music" placeholder="e.g. Happy Afrobeats song about Lagos">
-<button onclick="music()">Generate Music</button>
-<h3>🖼️ Image Question</h3>
-<input type="file" id="img" accept="image/*">
-<button onclick="imageQ()">Ask About Image</button>
-<div id="out">Result go show here...</div>
+<div class="wrap">
+  <h1>🤖 Petrux AI</h1>
+  <p class="sub">Created by Peter Oriorowho • Ask, Music, Image - All in One</p>
+
+  <div class="card">
+    <!-- BIG SEARCH BAR -->
+    <textarea id="userInput" placeholder="Ask Petrux AI anything...
+e.g. Did Wizkid post on Instagram today?
+e.g. Generate hip-hop music about Lagos
+e.g. What is in this image?"></textarea>
+
+    <!-- MODE BUTTONS - MUSIC + IMAGE MOVED HERE -->
+    <div class="modes">
+      <button id="btnChat" class="active" onclick="setMode('chat')">💬 Ask</button>
+      <button id="btnMusic" onclick="setMode('music')">🎵 Music</button>
+      <button id="btnImage" onclick="setMode('image')">🖼️ Image</button>
+    </div>
+
+    <!-- FILE UPLOAD UNDER ASK BAR -->
+    <div class="upload-box" id="uploadBox" style="display:none;">
+      <b>📁 Upload File for Image Question</b><br>
+      <small>Choose image, then type your question above and tap Ask</small><br><br>
+      <input type="file" id="imageFile" accept="image/*" onchange="showFileName()">
+      <div id="fileName"></div>
+    </div>
+
+    <button id="askBtn" onclick="ask()">Ask Petrux AI →</button>
+  </div>
+
+  <div id="answer">Your answer go show here...</div>
+  <div class="footer">Petrux AI • Created by Peter Oriorowho</div>
 </div>
+
 <script>
+let mode = 'chat';
+function setMode(m){
+  mode = m;
+  document.getElementById('btnChat').classList.remove('active');
+  document.getElementById('btnMusic').classList.remove('active');
+  document.getElementById('btnImage').classList.remove('active');
+  if(m=='chat') document.getElementById('btnChat').classList.add('active');
+  if(m=='music') document.getElementById('btnMusic').classList.add('active');
+  if(m=='image') document.getElementById('btnImage').classList.add('active');
+  document.getElementById('uploadBox').style.display = (m=='image') ? 'block' : 'none';
+  if(m=='music') document.getElementById('userInput').placeholder = "What music you want? e.g. Happy Afrobeats song about Lagos";
+  if(m=='image') document.getElementById('userInput').placeholder = "What you want know about this image? e.g. What is in this image?";
+  if(m=='chat') document.getElementById('userInput').placeholder = "Ask Petrux AI anything...";
+}
+function showFileName(){
+  const f = document.getElementById('imageFile').files[0];
+  document.getElementById('fileName').innerText = f ? "✅ Selected: " + f.name : "";
+}
 async function ask(){
-let m=document.getElementById('msg').value;
-document.getElementById('out').innerText='Thinking...';
-let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})});
-let d=await r.json(); document.getElementById('out').innerText=d.reply;
-}
-async function music(){
-let p=document.getElementById('music').value;
-document.getElementById('out').innerText='Generating music...';
-let r=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:p})});
-let d=await r.json(); document.getElementById('out').innerText=d.music;
-}
-async function imageQ(){
-let f=document.getElementById('img').files[0];
-if(!f) return alert('Choose image first');
-let fd=new FormData(); fd.append('image',f);
-document.getElementById('out').innerText='Reading image...';
-let r=await fetch('/api/image',{method:'POST',body:fd});
-let d=await r.json(); document.getElementById('out').innerText=d.reply;
+  const text = document.getElementById('userInput').value.trim();
+  const ans = document.getElementById('answer');
+  if(!text && mode!='image') { ans.innerText = "Type question first na."; return; }
+  ans.innerText = "Petrux AI dey think... ⏳";
+
+  try {
+    let url = "/api/chat";
+    let body = { message: text };
+    if(mode=='music'){ url = "/api/music"; body = { prompt: text }; }
+    if(mode=='image'){
+      url = "/api/image";
+      const file = document.getElementById('imageFile').files[0];
+      if(!file){ ans.innerText = "Please choose image first for Image mode."; return; }
+      const base64 = await new Promise(res => {
+        const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
+      });
+      body = { question: text || "What is in this image?", image: base64 };
+    }
+    const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const data = await res.json();
+    ans.innerText = data.reply || data.music || "No answer.";
+  } catch(e){ ans.innerText = "Error: " + e.message; }
 }
 </script>
 </body>
