@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Allow big image upload
 app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -16,11 +15,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// === HELPER: Call Gemini ===
 async function callGemini(prompt) {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) return "Petrux AI is waiting for key";
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + GEMINI_KEY;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
@@ -40,7 +38,6 @@ async function callGemini(prompt) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something went wrong.";
 }
 
-// === 1. CHAT - ENGLISH ONLY + SMART MEMORY + DEEP THINKING ===
 app.post("/api/chat", async (req, res) => {
   const message = req.body?.message || "";
   const history = req.body?.history || [];
@@ -62,10 +59,8 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply: "I was created by Peter Oriorowho. He is my creator. I am Petrux AI, built by him to help you." });
   }
 
-  // --- SMART MEMORY: Build context from history, but do NOT repeat it ---
   let memoryContext = "";
   if (history && history.length > 0) {
-    // Take only last 10, to keep it fast
     const lastHistory = history.slice(-10);
     memoryContext = lastHistory.map(h => {
       if (h.role === 'user') return "User said: " + h.text;
@@ -73,7 +68,7 @@ app.post("/api/chat", async (req, res) => {
     }).join("\n");
   }
 
-  const systemPrompt = `You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. You are as smart as ChatGPT and Grok.
+  const systemPrompt = `You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini.
 
 IMPORTANT RULES:
 1. Always answer in clear, correct, proper English. NEVER use Nigerian Pidgin. NEVER use words like 'na', 'dey', 'abeg', 'wetin', 'wey'. Use simple, clean English.
@@ -94,7 +89,6 @@ Think deeply step by step, then give a complete detailed answer like ChatGPT wou
   res.json({ reply });
 });
 
-// === 2. MUSIC - Generate Song Lyrics ===
 app.post("/api/music", async (req, res) => {
   const prompt = req.body?.prompt || "Love song";
   const systemPrompt = "You are Petrux AI, created by Peter Oriorowho. Write a complete song in clear, proper English. NEVER use Pidgin. Include a Title, Verse 1, Chorus, Verse 2, Chorus, Bridge. Make it catchy and easy to sing. Song request: " + prompt;
@@ -102,7 +96,6 @@ app.post("/api/music", async (req, res) => {
   res.json({ music: music, reply: music });
 });
 
-// === 3. IMAGE - Generate Real Image (Free, No Key Needed) ===
 app.post("/api/generate-image", async (req, res) => {
   const prompt = req.body?.prompt || "Beautiful landscape";
   const safePrompt = encodeURIComponent(prompt + ", high quality, detailed, beautiful");
@@ -110,7 +103,6 @@ app.post("/api/generate-image", async (req, res) => {
   res.json({ image: imageUrl, reply: "Your image is ready! Here is: " + prompt });
 });
 
-// === 4. CLONE IMAGE ===
 app.post("/api/clone-image", async (req, res) => {
   const prompt = req.body?.prompt || "Same person, professional photo";
   const safePrompt = encodeURIComponent(prompt + ", realistic photo, high quality");
@@ -118,7 +110,6 @@ app.post("/api/clone-image", async (req, res) => {
   res.json({ image: imageUrl, reply: "Your cloned image is ready!" });
 });
 
-// === 5. EDIT IMAGE ===
 app.post("/api/edit-image", async (req, res) => {
   const prompt = req.body?.prompt || "Change background to beach";
   const safePrompt = encodeURIComponent(prompt + ", realistic photo, high quality");
