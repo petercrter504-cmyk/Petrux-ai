@@ -6,45 +6,24 @@
 <title>Petrux AI - Created by Peter Oriorowho</title>
 <style>
     * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: Arial, sans-serif; color: white;
-    /* NEW BACKGROUND - Purple Neon */
-    background: linear-gradient(180deg, #0f0522 0%, #2a0a5e 45%, #6a00ff 100%);
-    background-attachment: fixed;
-    min-height: 100vh; padding: 16px;
-  }
+  body { margin: 0; font-family: Arial, sans-serif; color: white; background: linear-gradient(180deg, #0f0522 0%, #2a0a5e 45%, #6a00ff 100%); background-attachment: fixed; min-height: 100vh; padding: 16px; }
   .wrap { max-width: 700px; margin: 0 auto; }
   h1 { text-align: center; font-size: 32px; margin: 10px 0 4px; }
   p.sub { text-align: center; opacity: 0.85; margin: 0 0 18px; font-size: 14px; }
-  .card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 16px; backdrop-filter: blur(10px); }
-  /* BIGGER / LONGER SEARCH BAR */
-  #userInput {
-    width: 100%; min-height: 150px; padding: 16px;
-    font-size: 17px; border-radius: 16px; border: none;
-    outline: none; resize: vertical; font-family: Arial;
-  }
-  .modes { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-  .modes button {
-    flex: 1; padding: 12px; border-radius: 999px; border: 2px solid white;
-    background: transparent; color: white; font-weight: bold; cursor: pointer; font-size: 14px;
-  }
+  .card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 16px; }
+  #userInput { width: 100%; min-height: 150px; padding: 16px; font-size: 17px; border-radius: 16px; border: none; outline: none; resize: vertical; font-family: Arial; }
+  .modes { display: flex; gap: 8px; margin: 12px 0; }
+  .modes button { flex: 1; padding: 12px; border-radius: 999px; border: 2px solid white; background: transparent; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
   .modes button.active { background: white; color: #4a00e0; }
-  /* FILE UPLOAD UNDER ASK BAR */
-  .upload-box {
-    background: rgba(0,0,0,0.25); border: 2px dashed rgba(255,255,255,0.6);
-    border-radius: 14px; padding: 14px; text-align: center; margin: 8px 0;
-  }
+  .imgModes { display: none; gap: 8px; margin: 8px 0; }
+  .imgModes button { flex: 1; padding: 10px; border-radius: 999px; border: 2px solid white; background: transparent; color: white; font-weight: bold; cursor: pointer; }
+  .imgModes button.active { background: white; color: #4a00e0; }
+  .upload-box { background: rgba(0,0,0,0.25); border: 2px dashed rgba(255,255,255,0.6); border-radius: 14px; padding: 14px; text-align: center; margin: 8px 0; display: none; }
   .upload-box input { color: white; width: 100%; }
-  .upload-box small { opacity: 0.8; }
-  #fileName { font-size: 13px; margin-top: 6px; color: #ffe082; }
-  #askBtn {
-    width: 100%; padding: 16px; font-size: 18px; font-weight: bold;
-    background: #a100f2; color: white; border: none; border-radius: 14px; cursor: pointer; margin-top: 10px;
-  }
-  #answer {
-    margin-top: 16px; background: #1a1a1a; color: white; padding: 18px;
-    border-radius: 16px; min-height: 150px; white-space: pre-wrap; line-height: 1.6; font-size: 16px;
-  }
+  #previewImg { display: none; width: 100%; border-radius: 12px; margin-top: 10px; }
+  #askBtn { width: 100%; padding: 16px; font-size: 18px; font-weight: bold; background: #a100f2; color: white; border: none; border-radius: 14px; cursor: pointer; margin-top: 10px; }
+  #answer { margin-top: 16px; background: #1a1a1a; color: white; padding: 18px; border-radius: 16px; min-height: 150px; white-space: pre-wrap; line-height: 1.6; font-size: 16px; }
+  #answer img { width: 100%; border-radius: 14px; margin-top: 10px; }
   .footer { text-align: center; font-size: 12px; opacity: 0.7; margin-top: 14px; }
 </style>
 </head>
@@ -52,38 +31,55 @@
 <div class="wrap">
   <h1>🤖 Petrux AI</h1>
   <p class="sub">Created by Peter Oriorowho • Ask, Music, Image - All in One</p>
-
   <div class="card">
-    <!-- BIG SEARCH BAR -->
-    <textarea id="userInput" placeholder="Ask Petrux AI anything...
-e.g. Did Wizkid post on Instagram today?
-e.g. Generate hip-hop music about Lagos
-e.g. What is in this image?"></textarea>
+    <textarea id="userInput" placeholder="Ask Petrux AI anything..."></textarea>
 
-    <!-- MODE BUTTONS - MUSIC + IMAGE MOVED HERE -->
     <div class="modes">
       <button id="btnChat" class="active" onclick="setMode('chat')">💬 Ask</button>
       <button id="btnMusic" onclick="setMode('music')">🎵 Music</button>
       <button id="btnImage" onclick="setMode('image')">🖼️ Image</button>
     </div>
 
+    <!-- IMAGE GENERATOR: Generate / Clone / Edit -->
+    <div class="imgModes" id="imageModes">
+      <button id="imgGen" class="active" onclick="setImageMode('generate')">✨ Generate</button>
+      <button id="imgClone" onclick="setImageMode('clone')">👯 Clone</button>
+      <button id="imgEdit" onclick="setImageMode('edit')">✏️ Edit</button>
+    </div>
+
     <!-- FILE UPLOAD UNDER ASK BAR -->
-    <div class="upload-box" id="uploadBox" style="display:none;">
-      <b>📁 Upload File for Image Question</b><br>
-      <small>Choose image, then type your question above and tap Ask</small><br><br>
+    <div class="upload-box" id="uploadBox">
+      <b>📁 Upload Image for Clone / Edit</b><br>
+      <small>For Generate, you no need upload - just type am</small><br><br>
       <input type="file" id="imageFile" accept="image/*" onchange="showFileName()">
-      <div id="fileName"></div>
+      <div id="fileName" style="color:#ffe082; font-size:13px; margin-top:6px;"></div>
+      <img id="previewImg">
     </div>
 
     <button id="askBtn" onclick="ask()">Ask Petrux AI →</button>
   </div>
-
   <div id="answer">Your answer go show here...</div>
   <div class="footer">Petrux AI • Created by Peter Oriorowho</div>
 </div>
 
 <script>
 let mode = 'chat';
+let imageMode = 'generate';
+
+function setImageMode(m){
+  imageMode = m;
+  document.getElementById('imgGen').classList.remove('active');
+  document.getElementById('imgClone').classList.remove('active');
+  document.getElementById('imgEdit').classList.remove('active');
+  if(m=='generate') document.getElementById('imgGen').classList.add('active');
+  if(m=='clone') document.getElementById('imgClone').classList.add('active');
+  if(m=='edit') document.getElementById('imgEdit').classList.add('active');
+  document.getElementById('uploadBox').style.display = (m=='generate') ? 'none' : 'block';
+  if(m=='generate') document.getElementById('userInput').placeholder = "Describe image... e.g. A boy in Lagos wearing purple hoodie, sunset";
+  if(m=='clone') document.getElementById('userInput').placeholder = "Upload image, then type (optional) e.g. Make another copy";
+  if(m=='edit') document.getElementById('userInput').placeholder = "Upload image, then type wetin to change... e.g. Change shirt to red";
+}
+
 function setMode(m){
   mode = m;
   document.getElementById('btnChat').classList.remove('active');
@@ -92,34 +88,50 @@ function setMode(m){
   if(m=='chat') document.getElementById('btnChat').classList.add('active');
   if(m=='music') document.getElementById('btnMusic').classList.add('active');
   if(m=='image') document.getElementById('btnImage').classList.add('active');
-  document.getElementById('uploadBox').style.display = (m=='image') ? 'block' : 'none';
+  document.getElementById('imageModes').style.display = (m=='image') ? 'flex' : 'none';
+  document.getElementById('uploadBox').style.display = (m=='image' && imageMode!='generate') ? 'block' : 'none';
   if(m=='music') document.getElementById('userInput').placeholder = "What music you want? e.g. Happy Afrobeats song about Lagos";
-  if(m=='image') document.getElementById('userInput').placeholder = "What you want know about this image? e.g. What is in this image?";
+  if(m=='image') setImageMode(imageMode);
   if(m=='chat') document.getElementById('userInput').placeholder = "Ask Petrux AI anything...";
 }
+
 function showFileName(){
   const f = document.getElementById('imageFile').files[0];
   document.getElementById('fileName').innerText = f ? "✅ Selected: " + f.name : "";
+  if(f){
+    const reader = new FileReader();
+    reader.onload = e => { const img = document.getElementById('previewImg'); img.src = e.target.result; img.style.display = 'block'; };
+    reader.readAsDataURL(f);
+  }
 }
+
 async function ask(){
   const text = document.getElementById('userInput').value.trim();
   const ans = document.getElementById('answer');
-  if(!text && mode!='image') { ans.innerText = "Type question first na."; return; }
   ans.innerText = "Petrux AI dey think... ⏳";
-
   try {
+    // IMAGE MODE
+    if(mode=='image'){
+      const file = document.getElementById('imageFile').files[0];
+      let base64 = "";
+      if(file) base64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file); });
+      let url = "/api/generate-image";
+      if(imageMode=='clone') url = "/api/clone-image";
+      if(imageMode=='edit') url = "/api/edit-image";
+      if(imageMode!='generate' && !file){ ans.innerText = "Please upload image first for Clone / Edit."; return; }
+      if(!text && imageMode=='generate'){ ans.innerText = "Type wetin you want make I generate."; return; }
+      const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ prompt: text, question: text, image: base64 }) });
+      const data = await res.json();
+      if(data.image){
+        ans.innerHTML = "<b>" + (data.reply || "Done!") + "</b><br><img src='" + data.image + "'>";
+        ans.innerHTML += "<br><br><a href='" + data.image + "' download='petrux-image.png' style='color:#ffe082;'>⬇️ Download Image</a>";
+      } else ans.innerText = data.error || "No image.";
+      return;
+    }
+    // CHAT & MUSIC
     let url = "/api/chat";
     let body = { message: text };
     if(mode=='music'){ url = "/api/music"; body = { prompt: text }; }
-    if(mode=='image'){
-      url = "/api/image";
-      const file = document.getElementById('imageFile').files[0];
-      if(!file){ ans.innerText = "Please choose image first for Image mode."; return; }
-      const base64 = await new Promise(res => {
-        const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(file);
-      });
-      body = { question: text || "What is in this image?", image: base64 };
-    }
     const res = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
     const data = await res.json();
     ans.innerText = data.reply || data.music || "No answer.";
