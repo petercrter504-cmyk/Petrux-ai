@@ -7,29 +7,35 @@
 *{box-sizing:border-box} body{margin:0;background:#1a0b2e;color:white;font-family:Arial,sans-serif;padding:12px}
 .header{text-align:center;padding:10px}.header h1{margin:0;font-size:28px}.header p{color:#c084fc;margin:4px 0 12px}
 .box{background:#2a1450;border-radius:20px;padding:14px}
-textarea{width:100%;height:100px;border-radius:14px;border:none;padding:12px;font-size:16px;outline:none;resize:none}
+textarea{width:100%;height:90px;border-radius:14px;border:none;padding:12px;font-size:16px;outline:none;resize:none}
 .modes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-button{border:2px solid white;background:transparent;color:white;padding:10px 16px;border-radius:30px;font-size:15px;cursor:pointer;font-weight:bold}
+button{border:2px solid white;background:transparent;color:white;padding:10px 14px;border-radius:30px;font-size:14px;cursor:pointer;font-weight:bold}
 button.active{background:white;color:#7c3aed}
 .askbtn{width:100%;background:#a855f7;border:none;padding:14px;border-radius:14px;font-size:18px;margin-top:6px}
+.talkbtn{width:100%;background:#ec4899;border:none;padding:14px;border-radius:14px;font-size:18px;margin-top:8px}
 .result{margin-top:16px;background:#111;color:white;border-radius:16px;padding:14px;white-space:pre-wrap;line-height:1.6}
 .imgWrap{position:relative;border-radius:16px;overflow:hidden;margin-top:10px}
 .imgWrap img{width:100%;display:block}
 .watermark{position:absolute;bottom:0;left:0;right:0;height:36px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);display:flex;justify-content:space-between;align-items:center;padding:0 10px;font-size:12px;font-weight:bold}
 .dl{margin-top:8px;background:#22c55e;border:none;width:100%;padding:12px;border-radius:12px;color:white;font-weight:bold}
 .play{margin-top:8px;background:#f59e0b;border:none;width:100%;padding:12px;border-radius:12px;font-weight:bold}
+.gallery{margin-top:16px;background:#2a1450;border-radius:16px;padding:14px}
+.gItem{background:#111;border-radius:12px;padding:10px;margin-bottom:10px}
+.gItem img{width:100%;border-radius:10px}
 input[type=file]{margin-top:8px;color:white}
 .hidden{display:none}
+.small{font-size:12px;opacity:.8}
 </style>
 </head>
 <body>
 <div class="header"><h1>✨ Petrux AI</h1><p>Created by Peter Oriorowho</p></div>
 <div class="box">
-<textarea id="prompt" placeholder="Ask anything... e.g Generate a photo of Elon Musk, or write Afrobeats song about Lagos"></textarea>
+<textarea id="prompt" placeholder="Ask anything... e.g Generate photo of boy in Lagos, or write Afrobeats song about Lagos"></textarea>
 <div class="modes">
 <button id="bAsk" class="active" onclick="setMode('ask')">💬 Ask</button>
 <button id="bMusic" onclick="setMode('music')">🎵 Music</button>
 <button id="bImage" onclick="setMode('image')">🖼️ Image</button>
+<button id="bGallery" onclick="showGallery()">🖼️ My Gallery</button>
 </div>
 <div id="imgModes" class="modes hidden">
 <button id="bGen" class="active" onclick="setImg('generate')">✨ Generate</button>
@@ -38,13 +44,31 @@ input[type=file]{margin-top:8px;color:white}
 </div>
 <input type="file" id="fileInput" class="hidden" accept="image/*">
 <button class="askbtn" onclick="send()">Ask Petrux AI →</button>
+<button class="talkbtn" onclick="talk()">🎙️ Talk to Petrux - Tap & Speak</button>
+<div id="talkStatus" class="small" style="text-align:center;margin-top:6px"></div>
 </div>
 <div id="out"></div>
+<div id="galleryBox" class="gallery hidden"><h3>🖼️ My Creations Gallery</h3><p class="small">All your images & music dey here. E dey save for your phone.</p><div id="galleryList"></div><button onclick="clearGallery()" style="background:#ef4444;border:none;width:100%;padding:10px;border-radius:10px">🗑️ Clear Gallery</button></div>
 <script>
 let mode='ask', imgMode='generate', uploaded='';
-function setMode(m){mode=m; document.querySelectorAll('#bAsk,#bMusic,#bImage').forEach(b=>b.classList.remove('active')); document.getElementById(m==='ask'?'bAsk':m==='music'?'bMusic':'bImage').classList.add('active'); document.getElementById('imgModes').classList.toggle('hidden',m!=='image'); document.getElementById('fileInput').classList.toggle('hidden',!(m==='image'&&(imgMode!=='generate')));}
+let gallery = JSON.parse(localStorage.getItem('petrux_gallery')||'[]');
+function saveGallery(){ localStorage.setItem('petrux_gallery', JSON.stringify(gallery)); }
+function setMode(m){mode=m; document.querySelectorAll('#bAsk,#bMusic,#bImage').forEach(b=>b.classList.remove('active')); document.getElementById(m==='ask'?'bAsk':m==='music'?'bMusic':'bImage').classList.add('active'); document.getElementById('galleryBox').classList.add('hidden'); document.getElementById('imgModes').classList.toggle('hidden',m!=='image'); document.getElementById('fileInput').classList.toggle('hidden',!(m==='image'&&(imgMode!=='generate')));}
 function setImg(m){imgMode=m; document.querySelectorAll('#bGen,#bClone,#bEdit').forEach(b=>b.classList.remove('active')); document.getElementById(m==='generate'?'bGen':m==='clone'?'bClone':'bEdit').classList.add('active'); document.getElementById('fileInput').classList.toggle('hidden',m==='generate');}
 document.getElementById('fileInput').addEventListener('change',e=>{let r=new FileReader(); r.onload=()=>uploaded=r.result; r.readAsDataURL(e.target.files[0]);});
+
+function showGallery(){
+  document.getElementById('galleryBox').classList.remove('hidden');
+  let list=document.getElementById('galleryList');
+  if(gallery.length===0){ list.innerHTML='<p>No creation yet. Generate image or music first!</p>'; return; }
+  list.innerHTML=gallery.map((g,i)=>{
+    if(g.type==='image') return '<div class="gItem"><img src="'+g.content+'"><p>'+g.prompt+'</p><a href="'+g.content+'" download="petrux-'+i+'.png"><button class="dl">⬇️ Download</button></a></div>';
+    else return '<div class="gItem"><b>🎵 '+g.prompt+'</b><p style="white-space:pre-wrap">'+g.content.slice(0,300)+'...</p><button class="play" onclick="playFromGallery('+i+')">▶️ Play</button></div>';
+  }).join('');
+}
+function clearGallery(){ if(confirm('Clear all?')){ gallery=[]; saveGallery(); showGallery(); } }
+function playFromGallery(i){ window.lastSong=gallery[i].content; playSong(); }
+
 async function send(){
   let p=document.getElementById('prompt').value.trim();
   if(!p) return alert('Type something first');
@@ -61,16 +85,48 @@ async function send(){
     let d=await r.json();
     if(d.error){out.innerHTML='<div class="result">❌ '+d.error+'</div>'; return;}
     if(d.image){
-      out.innerHTML='<div class="result">✅ '+(d.reply||'Done!')+'<div class="imgWrap"><img src="'+d.image+'"><div class="watermark"><span>✨ Petrux AI</span><span>By Peter Oriorowho</span></div></div><a href="'+d.image+'" download="petrux-ai.png" target="_blank"><button class="dl">⬇️ Download Image</button></a></div>';
+      gallery.unshift({type:'image', prompt:p, content:d.image, time:Date.now()}); saveGallery();
+      out.innerHTML='<div class="result">✅ '+(d.reply||'Done!')+'<div class="imgWrap"><img src="'+d.image+'"><div class="watermark"><span>✨ Petrux AI</span><span>By Peter Oriorowho</span></div></div><button class="dl" onclick="downloadClean(\''+d.image+'\')">⬇️ Download Image - No Label</button><p class="small">✅ Saved to My Gallery!</p></div>';
     } else {
       let txt=d.reply||d.music||'Done';
-      let playBtn = mode==='music' ? '<button class="play" onclick="playSong()">▶️ Play Song (Voice)</button>' : '';
-      out.innerHTML='<div class="result" id="songText">'+txt.replace(/</g,'&lt;')+playBtn+'</div>';
       window.lastSong=txt;
+      if(mode==='music'){ gallery.unshift({type:'music', prompt:p, content:txt, time:Date.now()}); saveGallery(); }
+      let playBtn = mode==='music' ? '<button class="play" onclick="playSong()">▶️ PLAY MUSIC NOW</button><button class="play" onclick="stopSong()" style="background:#ef4444">⏹️ STOP</button>' : '<button class="play" onclick="speakReply()">🔊 Hear Petrux Speak</button>';
+      out.innerHTML='<div class="result">'+playBtn+'<div style="margin-top:10px">'+txt.replace(/</g,'&lt;')+'</div>'+(mode==='music'?'<p class="small">✅ Saved to My Gallery!</p>':'')+'</div>';
+      if(mode==='ask') speakReply();
     }
   }catch(e){out.innerHTML='<div class="result">❌ Error: '+e.message+'</div>';}
 }
-function playSong(){ if(!window.lastSong) return; speechSynthesis.cancel(); let u=new SpeechSynthesisUtterance(window.lastSong); u.rate=0.9; speechSynthesis.speak(u); }
+
+function speakReply(){ if(!window.lastSong) return; speechSynthesis.cancel(); let u=new SpeechSynthesisUtterance(window.lastSong.replace(/\*/g,'')); u.rate=0.95; speechSynthesis.speak(u); }
+let beatTimer=null;
+function stopSong(){ speechSynthesis.cancel(); if(beatTimer) clearInterval(beatTimer); }
+function playSong(){
+  if(!window.lastSong) return; stopSong();
+  let ctx=new (window.AudioContext||window.webkitAudioContext)(); let i=0;
+  beatTimer=setInterval(()=>{ let o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=i%4==0?150:80; g.gain.setValueAtTime(0.3,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.15); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.15); i++; },400);
+  let u=new SpeechSynthesisUtterance(window.lastSong.replace(/\*/g,'')); u.rate=0.85; u.onend=()=>clearInterval(beatTimer); speechSynthesis.speak(u);
+}
+async function downloadClean(url){
+  try{ let img=new Image(); img.crossOrigin="anonymous"; img.onload=()=>{ let c=document.createElement('canvas'); c.width=img.width; c.height=img.height-45; let ctx=c.getContext('2d'); ctx.drawImage(img,0,0); ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,c.height-36,c.width,36); ctx.fillStyle='white'; ctx.font='bold 20px Arial'; ctx.fillText('✨ Petrux AI',12,c.height-12); ctx.font='16px Arial'; ctx.fillText('By Peter Oriorowho',c.width-190,c.height-12); let a=document.createElement('a'); a.download='petrux-ai.png'; a.href=c.toDataURL('image/png'); a.click(); }; img.src=url; }catch(e){ alert('Download fail, try screenshot'); }
+}
+
+// TALK MODE
+function talk(){
+  let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('Your browser no support voice. Use Chrome.'); return; }
+  let rec=new SR(); rec.lang='en-NG'; rec.interimResults=false;
+  document.getElementById('talkStatus').innerText='🎙️ Listening... talk now!';
+  rec.onresult=(e)=>{
+    let text=e.results[0][0].transcript;
+    document.getElementById('prompt').value=text;
+    document.getElementById('talkStatus').innerText='You say: "'+text+'" — Petrux dey answer...';
+    send();
+  };
+  rec.onerror=()=>{ document.getElementById('talkStatus').innerText='Mic error, try again'; };
+  rec.onend=()=>{ setTimeout(()=>document.getElementById('talkStatus').innerText='',3000); };
+  rec.start();
+}
 </script>
 </body>
 </html>
