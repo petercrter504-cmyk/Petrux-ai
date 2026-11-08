@@ -14,7 +14,6 @@ body.dark .ai{background:#2f2f2f;border-color:#444}
 body.dark header{border-color:#333}
 body.dark #input{background:#2f2f2f;color:#fff;border-color:#444}
 body.dark .sidebar button{background:#2f2f2f;color:#eee;border-color:#444}
-body.dark .payCard{background:#2f2f2f;border-color:#444}
 .sidebar{width:270px;background:#f9f9f9;display:flex;flex-direction:column;padding:12px;border-right:1px solid #ddd;flex-shrink:0;z-index:100}
 .sidebar h2{font-size:18px;margin-bottom:12px}
 .newChat{background:#10a37f;color:#fff;border:none;padding:11px;border-radius:10px;cursor:pointer;font-weight:bold;margin-bottom:12px}
@@ -32,7 +31,7 @@ header h1{font-size:19px}
 header p{font-size:12px;color:#888}
 #menuBtn{display:block !important;background:#eee;border:1px solid #ddd;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:18px}
 #darkBtn{background:#111;color:#fff;border:none;padding:9px 12px;border-radius:50%;cursor:pointer;font-size:16px}
-#topPay{background:#FFD700;color:#111;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold;font-size:13px}
+#topPay{background:#FFD700;color:#111;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold;font-size:13px;white-space:nowrap}
 #chat{flex:1;overflow-y:auto;padding:20px;max-width:780px;width:100%;margin:0 auto}
 .msg{max-width:90%;padding:13px 16px;border-radius:16px;margin-bottom:14px;line-height:1.65;font-size:15px;white-space:pre-wrap;word-wrap:break-word}
 .user{background:#10a37f;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
@@ -56,16 +55,16 @@ body.dark .actions button{background:#444;color:#eee;border-color:#555}
 body.dark #inputBox{background:#2f2f2f;border-color:#444}
 #input{flex:1;padding:12px;border:none;outline:none;font-size:15px;background:transparent;color:inherit}
 #sendBtn{background:#10a37f;color:#fff;border:none;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:bold}
-/* PAYMENT MODAL */
 #payModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999;justify-content:center;align-items:center;padding:16px}
-.payCard{background:#fff;border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
-.payCard h2{margin-bottom:6px}
-.payCard p{color:#666;font-size:13px;margin-bottom:12px}
-.plan{border:2px solid #10a37f;border-radius:12px;padding:12px;margin-bottom:10px}
-.plan h3{font-size:16px}
+#payModal .payCard{background:#fff !important;color:#111 !important;border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
+#payModal .payCard p{color:#444 !important}
+#payModal .plan{background:#fff !important;color:#111 !important;border:2px solid #10a37f;border-radius:12px;padding:12px;margin-bottom:10px}
+#payModal .plan p{color:#444 !important}
+.plan h3{font-size:16px;color:#111}
 .plan button{width:100%;margin-top:8px;background:#10a37f;color:#fff;border:none;padding:10px;border-radius:10px;cursor:pointer;font-weight:bold}
-.payInfo{background:#fff8dc;border:1px dashed #e6c200;padding:10px;border-radius:10px;font-size:13px;line-height:1.6;margin-top:10px}
-.closePay{float:right;background:#eee;border:none;padding:6px 10px;border-radius:50%;cursor:pointer}
+.payInfo{background:#fff8dc !important;color:#111 !important;padding:12px;border:2px dashed #e6c200;border-radius:10px;font-size:14px;line-height:1.7;margin-top:10px}
+.payInfo b{color:#000 !important}
+.closePay{float:right;background:#eee;border:none;padding:6px 10px;border-radius:50%;cursor:pointer;color:#111}
 @media(max-width:700px){.sidebar{position:fixed;left:-290px;top:0;bottom:0;transition:0.3s}.sidebar.open{left:0}}
 </style>
 </head>
@@ -84,15 +83,13 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 <button>👤 Peter Oriorowho<br><small>Creator of Petrux AI</small></button>
 </div>
 </div>
-
 <div class="main">
 <header>
 <button id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
 <div style="flex:1"><h1>Petrux AI</h1><p>Created by Peter Oriorowho</p></div>
-<button id="topPay" onclick="openPay()">💳 Pay / Pro</button>
+<button id="topPay" onclick="openPay()">Pay / Pro</button>
 <button id="darkBtn" onclick="toggleTheme()">🌙</button>
 </header>
-
 <div id="chat">
 <div class="welcome" id="welcome">
 <h2>What can I help with?</h2>
@@ -106,7 +103,6 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 <div style="margin-top:20px"><button onclick="openPay()" style="background:#FFD700;border:none;padding:12px 20px;border-radius:20px;font-weight:bold;cursor:pointer">💳 Upgrade to Petrux PRO — See Plans</button></div>
 </div>
 </div>
-
 <div id="inputArea">
 <div id="tabs">
 <button class="active" onclick="setMode('chat',this)">💬 Chat</button>
@@ -119,27 +115,22 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 </div>
 </div>
 </div>
-
-<!-- PAYMENT POPUP -->
 <div id="payModal">
 <div class="payCard">
 <button class="closePay" onclick="closePay()">✕</button>
-<h2>💳 Petrux PRO</h2>
+<h2 style="color:#111">💳 Petrux PRO</h2>
 <p>Unlock unlimited chats, faster answers, image + music, priority support.</p>
-
 <div class="plan">
 <h3>⭐ PRO Monthly — ₦2,000 / month</h3>
 <p>✅ Unlimited chats ✅ Faster ✅ Images + Music</p>
 <button onclick="payNow('PRO Monthly - N2000')">Pay ₦2,000 — Bank Transfer</button>
 </div>
-
 <div class="plan" style="border-color:#FFD700">
 <h3>👑 PRO Yearly — ₦15,000 / year (Save!)</h3>
 <p>✅ Everything in Monthly ✅ Save ₦9,000 ✅ VIP Support</p>
 <button onclick="payNow('PRO Yearly - N15000')" style="background:#FFD700;color:#111">Pay ₦15,000 — Bank Transfer</button>
 </div>
-
-<div class="payInfo">
+<div class="payInfo" id="payInfoBox">
 <b>How to Pay:</b><br>
 1. Transfer to:<br>
 <b>Bank:</b> [PUT YOUR BANK HERE]<br>
@@ -151,7 +142,6 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 <p style="margin-top:10px;text-align:center;font-size:12px">Free plan: 20 chats per day. PRO: Unlimited.</p>
 </div>
 </div>
-
 <script>
 let allChats = JSON.parse(localStorage.getItem('petrux_all_chats') || '[]');
 let currentChatId = localStorage.getItem('petrux_current') || null;
@@ -163,7 +153,15 @@ function renderMemory(){ document.getElementById('memoryBox').innerHTML = '<b>�
 function editMemory(){ let m = prompt('What should Petrux remember about you?', localStorage.getItem('petrux_memory')); if(m!==null){ localStorage.setItem('petrux_memory', m); renderMemory(); alert('Memory saved!'); } }
 function openPay(){ document.getElementById('payModal').style.display='flex'; document.getElementById('sidebar').classList.remove('open'); }
 function closePay(){ document.getElementById('payModal').style.display='none'; }
-function payNow(plan){ alert('You chose: '+plan+'\n\n1. Transfer to the account shown.\n2. Send receipt on WhatsApp.\n3. Peter will activate your PRO.'); }
+function payNow(plan){
+  let acc = "[PUT YOUR ACCOUNT NUMBER]";
+  try{ navigator.clipboard.writeText(acc); }catch(e){}
+  let info = document.getElementById('payInfoBox');
+  if(info){ info.style.border = "3px solid #10a37f"; info.style.background = "#e6f7f2"; info.scrollIntoView({behavior:'smooth', block:'center'}); }
+  let wa = "2340000000000";
+  let msg = encodeURIComponent("Hello Peter, I want to pay for " + plan + " on Petrux AI. I have transferred. Here is my receipt.");
+  setTimeout(()=>{ window.open("https://wa.me/" + wa + "?text=" + msg, "_blank"); }, 800);
+}
 if(localStorage.getItem('petrux_theme')==='dark') document.body.classList.add('dark');
 function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem('petrux_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); }
 function setMode(m, btn){ mode=m; document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('input').placeholder = m==='chat' ? 'Ask Petrux anything...' : m==='music' ? 'What song do you want?' : 'What image do you want?'; }
