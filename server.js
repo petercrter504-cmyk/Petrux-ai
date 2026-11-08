@@ -16,12 +16,21 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// === HELPER: Call Gemini ===
-async function callGemini(prompt) {
+// === HELPER: Call Gemini - NOW WITH DEEP THINKING ===
+async function callGemini(prompt, isChat = false) {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) return "Petrux AI is waiting for key";
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
-  const payload = { contents: [{ parts: [{ text: prompt }] }] };
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_KEY;
+  const payload = { 
+    contents: [{ parts: [{ text: prompt }] }],
+    // THIS IS THE DEEP THINKING SETTING - This is what makes it like ChatGPT
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 4000,
+      topP: 0.95,
+      topK: 40
+    }
+  };
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -32,7 +41,7 @@ async function callGemini(prompt) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something went wrong.";
 }
 
-// === 1. CHAT - ENGLISH ONLY + SMART MEMORY ===
+// === 1. CHAT - ENGLISH ONLY + SMART MEMORY + DEEP THINKING ===
 app.post("/api/chat", async (req, res) => {
   const message = req.body?.message || "";
   const history = req.body?.history || [];
@@ -54,10 +63,9 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply: "I was created by Peter Oriorowho. He is my creator. I am Petrux AI, built by him to help you." });
   }
 
-  // --- SMART MEMORY: Build context from history, but do NOT repeat it ---
+  // --- SMART MEMORY ---
   let memoryContext = "";
   if (history && history.length > 0) {
-    // Take only last 10, to keep it fast
     const lastHistory = history.slice(-10);
     memoryContext = lastHistory.map(h => {
       if (h.role === 'user') return "User said: " + h.text;
@@ -65,13 +73,14 @@ app.post("/api/chat", async (req, res) => {
     }).join("\n");
   }
 
-  const systemPrompt = `You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini.
+  const systemPrompt = `You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. You are as smart as ChatGPT and Grok.
 
 IMPORTANT RULES:
 1. Always answer in clear, correct, proper English. NEVER use Nigerian Pidgin. NEVER use words like 'na', 'dey', 'abeg', 'wetin', 'wey'. Use simple, clean English.
 2. Be friendly and helpful.
 3. If anyone asks who created you, always say Peter Oriorowho.
-4. MEMORY RULE: Below is the previous conversation for CONTEXT ONLY. Use it to understand the user (like remembering their name). DO NOT list, summarise, or repeat the past conversation unless the user specifically asks "what did we talk about" or "what is my name". Only answer the CURRENT question directly and briefly.
+4. DEEP THINKING: Never give a short, lazy answer. Always think STEP BY STEP before answering. First understand the question, then think of 2-3 angles, then give the best answer. Give deep, complete answers with examples, steps, and explanations. Explain the WHY, not just the WHAT. If the question is hard, break it down. End with what the user should do next if it helps them.
+5. MEMORY RULE: Below is the previous conversation for CONTEXT ONLY. Use it to understand the user (like remembering their name). DO NOT list, summarise, or repeat the past conversation unless the user specifically asks "what did we talk about" or "what is my name". Only answer the CURRENT question directly.
 
 PREVIOUS CONVERSATION (for context only):
 ${memoryContext || "No previous conversation yet."}
@@ -79,9 +88,9 @@ ${memoryContext || "No previous conversation yet."}
 CURRENT QUESTION:
 ${message}
 
-Answer in proper English:`;
+Think deeply step by step, then give a complete detailed answer like ChatGPT would. Answer in proper English:`;
 
-  const reply = await callGemini(systemPrompt);
+  const reply = await callGemini(systemPrompt, true);
   res.json({ reply });
 });
 
