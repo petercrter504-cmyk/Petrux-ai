@@ -32,9 +32,10 @@ async function callGemini(prompt) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something went wrong.";
 }
 
-// === 1. CHAT - ENGLISH ONLY ===
+// === 1. CHAT - ENGLISH ONLY + SMART MEMORY ===
 app.post("/api/chat", async (req, res) => {
   const message = req.body?.message || "";
+  const history = req.body?.history || [];
   if (!message) return res.json({ reply: "Please type a message" });
   const lower = message.toLowerCase();
 
@@ -53,7 +54,32 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply: "I was created by Peter Oriorowho. He is my creator. I am Petrux AI, built by him to help you." });
   }
 
-  const systemPrompt = "You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. IMPORTANT: Always answer in clear, correct, proper English. NEVER use Nigerian Pidgin. NEVER use words like 'na', 'dey', 'abeg', 'wetin', 'wey'. Use simple, clean English. Be friendly and helpful. If anyone asks who created you, always say Peter Oriorowho. Answer this question in proper English: " + message;
+  // --- SMART MEMORY: Build context from history, but do NOT repeat it ---
+  let memoryContext = "";
+  if (history && history.length > 0) {
+    // Take only last 10, to keep it fast
+    const lastHistory = history.slice(-10);
+    memoryContext = lastHistory.map(h => {
+      if (h.role === 'user') return "User said: " + h.text;
+      return "Petrux said: " + h.text;
+    }).join("\n");
+  }
+
+  const systemPrompt = `You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini.
+
+IMPORTANT RULES:
+1. Always answer in clear, correct, proper English. NEVER use Nigerian Pidgin. NEVER use words like 'na', 'dey', 'abeg', 'wetin', 'wey'. Use simple, clean English.
+2. Be friendly and helpful.
+3. If anyone asks who created you, always say Peter Oriorowho.
+4. MEMORY RULE: Below is the previous conversation for CONTEXT ONLY. Use it to understand the user (like remembering their name). DO NOT list, summarise, or repeat the past conversation unless the user specifically asks "what did we talk about" or "what is my name". Only answer the CURRENT question directly and briefly.
+
+PREVIOUS CONVERSATION (for context only):
+${memoryContext || "No previous conversation yet."}
+
+CURRENT QUESTION:
+${message}
+
+Answer in proper English:`;
 
   const reply = await callGemini(systemPrompt);
   res.json({ reply });
@@ -70,7 +96,6 @@ app.post("/api/music", async (req, res) => {
 // === 3. IMAGE - Generate Real Image (Free, No Key Needed) ===
 app.post("/api/generate-image", async (req, res) => {
   const prompt = req.body?.prompt || "Beautiful landscape";
-  // Pollinations - free image generator
   const safePrompt = encodeURIComponent(prompt + ", high quality, detailed, beautiful");
   const imageUrl = "https://image.pollinations.ai/prompt/" + safePrompt + "?width=1024&height=1024&seed=" + Math.floor(Math.random() * 1000000) + "&nologo=true";
   res.json({ image: imageUrl, reply: "Your image is ready! Here is: " + prompt });
