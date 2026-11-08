@@ -24,11 +24,14 @@ textarea,input{width:100%;padding:12px;border-radius:12px;border:none;outline:no
 .btn-pink{background:#ec4899;color:#fff}
 .btn-orange{background:#f59e0b;color:#000}
 .btn-dark{background:#222;color:#fff}
+.btn-grey{background:#444;color:#fff}
 #replyBox{background:#000;border-radius:15px;padding:15px;min-height:120px;white-space:pre-wrap;line-height:1.6;font-size:16px;margin-top:10px;word-break:break-word}
 #replyBox img{width:100%;border-radius:12px;margin-top:10px}
 #gallery img{width:100%;border-radius:12px;margin-bottom:10px}
 small{color:#aaa}
 label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
+.chat-item{background:#1a0b2e;border-left:3px solid #a855f7;padding:10px;border-radius:10px;margin-bottom:8px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.chat-item b{color:#ffcc00}
 </style>
 </head>
 <body>
@@ -55,7 +58,7 @@ label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
 <button class="tab" onclick="showGallery()">🖼️ Gallery</button>
 </div>
 
-<textarea id="prompt" rows="3" placeholder="Ask Petrux anything... e.g. Give me best reply to this girl, Write song about Lagos..."></textarea>
+<textarea id="prompt" rows="3" placeholder="Ask Petrux anything... e.g. Give me the best reply to this girl, Write a song about Lagos..."></textarea>
 
 <div id="uploadBox" style="display:none;">
 <label>📸 Upload Image (for Clone / Edit):</label>
@@ -67,10 +70,13 @@ label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
 <button class="btn btn-pink" onclick="talk()">🎙️ Talk to Petrux - Tap & Speak</button>
 <button id="voiceToggle" class="btn btn-dark" onclick="toggleVoice()">🔇 Voice: OFF - Tap to Turn ON</button>
 <button class="btn btn-orange" onclick="hearSpeak()">🔊 Hear Petrux Speak</button>
+<button class="btn btn-grey" onclick="showMemory()">🧠 My Memory - See what Petrux remembers</button>
+<button class="btn btn-dark" onclick="clearMemory()">🗑️ Clear Memory</button>
 
 <div id="replyBox">Ask me anything, I am here for you...</div>
 <p style="margin-top:8px;"><small id="status"></small></p>
 <div id="gallery" style="margin-top:15px;"></div>
+<div id="memoryBox" style="margin-top:15px;"></div>
 </div>
 
 <script>
@@ -78,6 +84,26 @@ let mode = 'ask';
 let voiceOn = localStorage.getItem('petruxVoice') === 'on' ? true : false;
 let lastReply = '';
 let uploadedImage = '';
+
+// --- SMART MEMORY: Remember but don't repeat all ---
+let chatHistory = JSON.parse(localStorage.getItem('petrux_history') || '[]');
+function saveMemory(role, text){
+  if(!text) return;
+  chatHistory.push({role: role, text: text.substring(0,1000)});
+  if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+  localStorage.setItem('petrux_history', JSON.stringify(chatHistory));
+}
+function showMemory(){
+  let div = document.getElementById('memoryBox');
+  if(chatHistory.length===0){ div.innerHTML = '<p>Petrux does not remember anything yet. Talk to it first!</p>'; return; }
+  div.innerHTML = '<h3>🧠 What Petrux Remembers (last '+chatHistory.length+')</h3>' + chatHistory.map(c=>'<div class="chat-item"><b>'+(c.role==='user'?'You':'Petrux')+':</b> '+c.text+'</div>').join('') + '<p><small>Petrux uses this quietly to understand you. It will not repeat it unless you ask.</small></p>';
+}
+function clearMemory(){
+  if(!confirm('Clear all memory? Petrux will forget everything.')) return;
+  chatHistory = [];
+  localStorage.removeItem('petrux_history');
+  document.getElementById('memoryBox').innerHTML = '<p>Memory cleared. Petrux has forgotten everything.</p>';
+}
 
 // --- PRO / FREE LIMIT ---
 let isPro = localStorage.getItem('petruxPro') === 'yes';
@@ -104,8 +130,8 @@ function checkLimit(){
   if(isPro) return true;
   let u = getUsage();
   if(u.count >= FREE_LIMIT){
-    document.getElementById('replyBox').innerText = '🔒 You don use your 5 free uses for today!\n\nGo Pro for ₦1,200 to unlock unlimited music, images, clone & edit.';
-    alert('You don reach free limit for today. Tap Go Pro to continue!');
+    document.getElementById('replyBox').innerText = '🔒 You have used your 5 free uses for today!\n\nGo Pro for ₦1,200 to unlock unlimited music, images, clone & edit.';
+    alert('You have reached your free limit for today. Tap Go Pro to continue!');
     return false;
   }
   return true;
@@ -131,7 +157,7 @@ function setMode(m){
   if(map[m]) document.getElementById(map[m]).classList.add('active');
   document.getElementById('uploadBox').style.display = (m==='clone' || m==='edit') ? 'block' : 'none';
   let ph = {
-    ask:'Ask Petrux anything... e.g. Give me best reply to this girl...',
+    ask:'Ask Petrux anything... e.g. Give me the best reply to this girl...',
     music:'What song do you want? e.g. Love song about Amara...',
     image:'Describe image... e.g. Nigerian superstar on stage...',
     clone:'Describe how you want the cloned image...',
@@ -165,7 +191,6 @@ function updateVoiceButton(){
   }
   localStorage.setItem('petruxVoice', voiceOn ? 'on' : 'off');
 }
-
 function unlockVoice(){
   if(!('speechSynthesis' in window)) return;
   window.speechSynthesis.getVoices();
@@ -173,7 +198,6 @@ function unlockVoice(){
   u.volume = 0;
   window.speechSynthesis.speak(u);
 }
-
 function speakText(text){
   if(!voiceOn) return;
   if(!('speechSynthesis' in window)){ alert('Your phone does not support voice.'); return; }
@@ -194,7 +218,6 @@ function speakText(text){
     else { window.speechSynthesis.resume(); }
   }, 3000);
 }
-
 function toggleVoice(){
   voiceOn = !voiceOn;
   updateVoiceButton();
@@ -227,7 +250,6 @@ function talk(){
 async function send(){
   let prompt = document.getElementById('prompt').value.trim();
   if(!prompt){ alert('Type something first!'); return; }
-
   let low = prompt.toLowerCase();
   if(mode === 'ask' && (low.includes('generate image') || low.includes('create image') || low.includes('draw') || low.includes('make image') || low.includes('create picture') || low.includes('generate picture') || low.includes('generate an image'))){
     mode = 'image';
@@ -237,14 +259,14 @@ async function send(){
     mode = 'music';
     setMode('music');
   }
-
   if(mode !== 'ask' && !checkLimit()) return;
-
   let box = document.getElementById('replyBox');
   box.innerText = 'Petrux is thinking... ⏳';
+  saveMemory('user', prompt);
   try{
     let url = '/api/chat';
-    let body = {message: prompt};
+    let historyForAI = chatHistory.slice(-10);
+    let body = {message: prompt, history: historyForAI, instruction: "You are Petrux AI. Always respond in clear, correct, simple English. Do NOT use Pidgin, slang, or Naija street language. Use history ONLY for context to understand the user. DO NOT list or repeat past conversations unless user specifically asks 'what did we talk about'. Only answer the CURRENT question directly."};
     if(mode==='music'){ url='/api/music'; body={prompt}; }
     if(mode==='image'){ url='/api/generate-image'; body={prompt}; }
     if(mode==='clone'){ url='/api/clone-image'; body={prompt, image: uploadedImage}; }
@@ -256,15 +278,17 @@ async function send(){
       lastReply = data.reply || 'Your image is ready!';
       box.innerHTML = lastReply + '<br><img src="'+data.image+'">';
       saveToGallery(data.image);
+      saveMemory('assistant', lastReply);
       speakText(lastReply);
     } else {
       lastReply = data.reply || data.music || data.error || 'No reply';
       box.innerText = lastReply;
+      saveMemory('assistant', lastReply);
       speakText(lastReply);
     }
+    document.getElementById('prompt').value = '';
   }catch(e){ box.innerText = 'Network error, try again. ' + e.message; }
 }
-
 function saveToGallery(url){
   let g = JSON.parse(localStorage.getItem('petruxGallery') || '[]');
   g.unshift(url);
@@ -283,4 +307,4 @@ if('speechSynthesis' in window){
 updateVoiceButton();
 </script>
 </body>
-</html>
+  </html>
