@@ -20,14 +20,11 @@ app.post("/api/chat", async (req, res) => {
   const body = req.body || {};
   const message = body.message;
   if (!message) return res.json({ reply: "Send message na" });
-
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) return res.json({ reply: "Petrux AI dey wait for key" });
-
   const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
   const prompt = "You are Petrux AI. Your creator is Peter Oriorowho. Never say you are Gemini or Google or Meta AI. If someone asks 'Who are you?' you must reply exactly: 'I am Petrux AI, created by Peter Oriorowho' and then continue helping. If someone asks who created you, say Peter Oriorowho created you. Answer in a friendly way. User question: " + message;
   const payload = { contents: [{ parts: [{ text: prompt }] }] };
-
   try {
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await response.json();
@@ -52,10 +49,10 @@ app.post("/api/music", async (req, res) => {
   } catch(e){ res.json({ reply: "Music error: " + e.message }); }
 });
 
-// ===== IMAGE - GENERATE / CLONE / EDIT - ALL IN ONE =====
+// ===== IMAGE - GENERATE / CLONE / EDIT =====
 async function callGeminiImage(promptText, imageBase64) {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=" + GEMINI_KEY;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + GEMINI_KEY;
   const parts = [{ text: promptText }];
   if (imageBase64) {
     const clean = imageBase64.split(",")[1] || imageBase64;
@@ -110,7 +107,7 @@ app.post("/api/edit-image", async (req, res) => {
   } catch(e){ res.json({ error: e.message }); }
 });
 
-// Old /api/image - keep for backward compatibility (Ask about image)
+// Old /api/image - keep for backward compatibility
 app.post("/api/image", async (req, res) => {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
