@@ -10,6 +10,10 @@ body{background:#1a0b2e;color:#fff;min-height:100vh;padding:15px}
 .header{text-align:center;margin-bottom:15px}
 .header h1{font-size:32px}
 .header p{color:#c084fc;margin-top:5px}
+.pro-box{text-align:center;margin:0 0 15px;background:#2a1445;border:1px solid #ffcc00;border-radius:18px;padding:14px}
+.pro-btn{display:inline-block;background:#ffcc00;color:#000;padding:13px 24px;border-radius:25px;font-weight:bold;text-decoration:none;font-size:16px}
+.pro-box p{color:#c084fc;font-size:13px;margin-top:8px}
+.pro-badge{display:inline-block;background:#22c55e;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-top:8px}
 .card{background:#2a1445;border-radius:20px;padding:15px;margin-bottom:15px}
 textarea,input{width:100%;padding:12px;border-radius:12px;border:none;outline:none;font-size:16px;background:#fff;color:#000;margin-bottom:10px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
@@ -32,6 +36,13 @@ label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
 <div class="header">
 <h1>✨ Petrux AI</h1>
 <p>Created by Peter Oriorowho</p>
+</div>
+
+<div class="pro-box" id="proBox">
+<a href="PASTE-YOUR-PAYSTACK-PAYMENT-LINK-HERE" class="pro-btn">⭐ Go Pro - ₦2,000/month</a>
+<p>Unlock unlimited music, images, clone & edit • No daily limit</p>
+<div id="proStatus"></div>
+<p style="color:#aaa;font-size:12px;margin-top:6px;" id="usageText"></p>
 </div>
 
 <div class="card">
@@ -67,6 +78,52 @@ let mode = 'ask';
 let voiceOn = localStorage.getItem('petruxVoice') === 'on' ? true : false;
 let lastReply = '';
 let uploadedImage = '';
+
+// --- PRO / FREE LIMIT ---
+let isPro = localStorage.getItem('petruxPro') === 'yes';
+let FREE_LIMIT = 5;
+function getUsage(){
+  let today = new Date().toDateString();
+  let saved = JSON.parse(localStorage.getItem('petruxUsage') || '{"date":"","count":0}');
+  if(saved.date !== today){ saved = {date: today, count: 0}; }
+  return saved;
+}
+function updateProUI(){
+  let u = getUsage();
+  let statusEl = document.getElementById('proStatus');
+  let usageEl = document.getElementById('usageText');
+  if(isPro){
+    if(statusEl) statusEl.innerHTML = '<span class="pro-badge">✅ PRO ACTIVE - Unlimited</span>';
+    if(usageEl) usageEl.innerText = '';
+  } else {
+    if(statusEl) statusEl.innerHTML = '';
+    if(usageEl) usageEl.innerText = 'Free today: ' + u.count + ' / ' + FREE_LIMIT + ' uses left: ' + (FREE_LIMIT - u.count);
+  }
+}
+function checkLimit(){
+  if(isPro) return true;
+  let u = getUsage();
+  if(u.count >= FREE_LIMIT){
+    document.getElementById('replyBox').innerText = '🔒 You don use your 5 free uses for today!\n\nGo Pro for ₦2,000/month to unlock unlimited music, images, clone & edit.';
+    alert('You don reach free limit for today. Tap Go Pro to continue!');
+    return false;
+  }
+  return true;
+}
+function addUsage(){
+  if(isPro) return;
+  let u = getUsage();
+  u.count++;
+  localStorage.setItem('petruxUsage', JSON.stringify(u));
+  updateProUI();
+}
+// If user comes back from Paystack, you can manually set Pro by adding ?pro=yes to your Paystack success URL
+if(window.location.search.includes('pro=yes')){
+  localStorage.setItem('petruxPro','yes');
+  isPro = true;
+  alert('Welcome to Petrux Pro! Unlimited unlocked 🎉');
+}
+updateProUI();
 
 function setMode(m){
   mode = m;
@@ -172,7 +229,6 @@ async function send(){
   let prompt = document.getElementById('prompt').value.trim();
   if(!prompt){ alert('Type something first!'); return; }
 
-  // AUTO-DETECT: If user types generate image / draw / create picture inside Ask, switch to Image automatically
   let low = prompt.toLowerCase();
   if(mode === 'ask' && (low.includes('generate image') || low.includes('create image') || low.includes('draw') || low.includes('make image') || low.includes('create picture') || low.includes('generate picture') || low.includes('generate an image'))){
     mode = 'image';
@@ -182,6 +238,9 @@ async function send(){
     mode = 'music';
     setMode('music');
   }
+
+  // Block Pro features if free limit reached
+  if(mode !== 'ask' && !checkLimit()) return;
 
   let box = document.getElementById('replyBox');
   box.innerText = 'Petrux is thinking... ⏳';
@@ -194,6 +253,7 @@ async function send(){
     if(mode==='edit'){ url='/api/edit-image'; body={prompt, image: uploadedImage}; }
     let res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     let data = await res.json();
+    if(mode !== 'ask') addUsage();
     if(data.image){
       lastReply = data.reply || 'Your image is ready!';
       box.innerHTML = lastReply + '<br><img src="'+data.image+'">';
