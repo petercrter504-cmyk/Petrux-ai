@@ -39,7 +39,7 @@ label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
 </div>
 
 <div class="pro-box" id="proBox">
-<a href="https://paystack.shop/pay/3xcrhonpjp" class="pro-btn">⭐ Go Pro - ₦5,000</a>
+<a href="https://paystack.shop/pay/3xcrhonpjp" class="pro-btn">⭐ Go Pro - ₦1,200</a>
 <p>Unlock unlimited music, images, clone & edit • No daily limit</p>
 <div id="proStatus"></div>
 <p style="color:#aaa;font-size:12px;margin-top:6px;" id="usageText"></p>
@@ -104,7 +104,7 @@ function checkLimit(){
   if(isPro) return true;
   let u = getUsage();
   if(u.count >= FREE_LIMIT){
-    document.getElementById('replyBox').innerText = '🔒 You don use your 5 free uses for today!\n\nGo Pro for ₦5,000 to unlock unlimited music, images, clone & edit.';
+    document.getElementById('replyBox').innerText = '🔒 You don use your 5 free uses for today!\n\nGo Pro for ₦1,200 to unlock unlimited music, images, clone & edit.';
     alert('You don reach free limit for today. Tap Go Pro to continue!');
     return false;
   }
