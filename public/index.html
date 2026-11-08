@@ -56,7 +56,6 @@ function saveGallery(){ localStorage.setItem('petrux_gallery', JSON.stringify(ga
 function setMode(m){mode=m; document.querySelectorAll('#bAsk,#bMusic,#bImage').forEach(b=>b.classList.remove('active')); document.getElementById(m==='ask'?'bAsk':m==='music'?'bMusic':'bImage').classList.add('active'); document.getElementById('galleryBox').classList.add('hidden'); document.getElementById('imgModes').classList.toggle('hidden',m!=='image'); document.getElementById('fileInput').classList.toggle('hidden',!(m==='image'&&(imgMode!=='generate')));}
 function setImg(m){imgMode=m; document.querySelectorAll('#bGen,#bClone,#bEdit').forEach(b=>b.classList.remove('active')); document.getElementById(m==='generate'?'bGen':m==='clone'?'bClone':'bEdit').classList.add('active'); document.getElementById('fileInput').classList.toggle('hidden',m==='generate');}
 document.getElementById('fileInput').addEventListener('change',e=>{let r=new FileReader(); r.onload=()=>uploaded=r.result; r.readAsDataURL(e.target.files[0]);});
-
 function showGallery(){
   document.getElementById('galleryBox').classList.remove('hidden');
   let list=document.getElementById('galleryList');
@@ -68,7 +67,6 @@ function showGallery(){
 }
 function clearGallery(){ if(confirm('Clear all?')){ gallery=[]; saveGallery(); showGallery(); } }
 function playFromGallery(i){ window.lastSong=gallery[i].content; playSong(); }
-
 async function send(){
   let p=document.getElementById('prompt').value.trim();
   if(!p) return alert('Type something first');
@@ -97,7 +95,6 @@ async function send(){
     }
   }catch(e){out.innerHTML='<div class="result">❌ Error: '+e.message+'</div>';}
 }
-
 function speakReply(){ if(!window.lastSong) return; speechSynthesis.cancel(); let u=new SpeechSynthesisUtterance(window.lastSong.replace(/\*/g,'')); u.rate=0.95; speechSynthesis.speak(u); }
 let beatTimer=null;
 function stopSong(){ speechSynthesis.cancel(); if(beatTimer) clearInterval(beatTimer); }
@@ -110,23 +107,27 @@ function playSong(){
 async function downloadClean(url){
   try{ let img=new Image(); img.crossOrigin="anonymous"; img.onload=()=>{ let c=document.createElement('canvas'); c.width=img.width; c.height=img.height-45; let ctx=c.getContext('2d'); ctx.drawImage(img,0,0); ctx.fillStyle='rgba(0,0,0,0.85)'; ctx.fillRect(0,c.height-36,c.width,36); ctx.fillStyle='white'; ctx.font='bold 20px Arial'; ctx.fillText('✨ Petrux AI',12,c.height-12); ctx.font='16px Arial'; ctx.fillText('By Peter Oriorowho',c.width-190,c.height-12); let a=document.createElement('a'); a.download='petrux-ai.png'; a.href=c.toDataURL('image/png'); a.click(); }; img.src=url; }catch(e){ alert('Download fail, try screenshot'); }
 }
-
-// TALK MODE
 function talk(){
   let SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ alert('Your browser no support voice. Use Chrome.'); return; }
-  let rec=new SR(); rec.lang='en-NG'; rec.interimResults=false;
-  document.getElementById('talkStatus').innerText='🎙️ Listening... talk now!';
+  if(!SR){ alert('Use Chrome browser'); return; }
+  let rec=new SR(); 
+  rec.lang='en-US';
+  rec.interimResults=false; rec.continuous=false; rec.maxAlternatives=1;
+  document.getElementById('talkStatus').innerText='🎙️ Listening... TALK LOUD NOW!';
   rec.onresult=(e)=>{
     let text=e.results[0][0].transcript;
     document.getElementById('prompt').value=text;
     document.getElementById('talkStatus').innerText='You say: "'+text+'" — Petrux dey answer...';
+    try{ rec.stop(); }catch(err){}
     send();
   };
-  rec.onerror=()=>{ document.getElementById('talkStatus').innerText='Mic error, try again'; };
-  rec.onend=()=>{ setTimeout(()=>document.getElementById('talkStatus').innerText='',3000); };
-  rec.start();
+  rec.onerror=(e)=>{
+    document.getElementById('talkStatus').innerText='Mic error: '+e.error+' — Tap again & talk loud';
+    try{ rec.stop(); }catch(err){}
+  };
+  rec.onend=()=>{ setTimeout(()=>{ let s=document.getElementById('talkStatus'); if(s.innerText.includes('Listening')) s.innerText='No hear you, tap again'; },1000); };
+  try{ rec.start(); }catch(err){ document.getElementById('talkStatus').innerText='Mic busy, wait 3 sec & tap again'; }
 }
 </script>
 </body>
-</html>
+  </html>
