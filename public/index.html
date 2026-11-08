@@ -37,7 +37,6 @@ header p{font-size:12px;color:#888}
 .user{background:#10a37f;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
 .ai{background:#f7f7f8;border:1px solid #eee;margin-right:auto;border-bottom-left-radius:4px}
 .ai b{font-weight:700}
-.ai h3{margin:12px 0 6px;font-size:16px}
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .actions button{background:#fff;border:1px solid #ddd;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px}
 body.dark .actions button{background:#444;color:#eee;border-color:#555}
@@ -55,8 +54,7 @@ body.dark .actions button{background:#444;color:#eee;border-color:#555}
 body.dark #inputBox{background:#2f2f2f;border-color:#444}
 #input{flex:1;padding:12px;border:none;outline:none;font-size:15px;background:transparent;color:inherit}
 #micBtn{background:#fff;border:1px solid #ddd;padding:10px 13px;border-radius:12px;cursor:pointer;font-size:18px}
-#micBtn.listening{background:#ff3b30;color:#fff;border-color:#ff3b30;animation:pulse 1s infinite}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+#micBtn.listening{background:#ff3b30;color:#fff;border-color:#ff3b30}
 #sendBtn{background:#10a37f;color:#fff;border:none;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:bold}
 #voiceNote{font-size:12px;color:#888;text-align:center;margin-top:6px}
 #payModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999;justify-content:center;align-items:center;padding:16px}
@@ -82,162 +80,167 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 </head>
 <body>
 <div class="sidebar" id="sidebar">
-<h2>🤖 Petrux AI</h2>
-<button class="newChat" onclick="newChat()">＋ New Chat</button>
-<button class="payBtn" onclick="openPay()">💳 Upgrade to PRO — Pay Here</button>
+<h2>Petrux AI</h2>
+<button class="newChat" onclick="newChat()">New Chat</button>
+<button class="payBtn" onclick="openPay()">Upgrade to PRO - Pay Here</button>
 <div class="chatList" id="chatList"></div>
 <div class="memoryBox" id="memoryBox"></div>
 <div class="sidebarFooter">
-<button onclick="toggleTheme()">🌙 / ☀️ Dark / Light Mode</button>
-<button onclick="openPay()">💳 Payments / Upgrade</button>
-<button onclick="editMemory()">🧠 Edit Memory</button>
-<button onclick="clearMemory()">🗑️ Clear Memory</button>
-<button>👤 Peter Oriorowho<br><small>Creator of Petrux AI</small></button>
+<button onclick="toggleTheme()">Dark / Light Mode</button>
+<button onclick="openPay()">Payments / Upgrade</button>
+<button onclick="editMemory()">Edit Memory</button>
+<button onclick="clearMemory()">Clear Memory</button>
+<button>Peter Oriorowho<br><small>Creator of Petrux AI</small></button>
 </div>
 </div>
 <div class="main">
 <header>
-<button id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+<button id="menuBtn" onclick="toggleSidebar()">Menu</button>
 <div style="flex:1"><h1>Petrux AI</h1><p>Created by Peter Oriorowho</p></div>
 <button id="topPay" onclick="openPay()">Pay / Pro</button>
-<button id="darkBtn" onclick="toggleTheme()">🌙</button>
+<button id="darkBtn" onclick="toggleTheme()">Dark</button>
 </header>
 <div id="chat">
 <div class="welcome" id="welcome">
 <h2>What can I help with?</h2>
-<p>Ask me anything — business, school, songs, images, coding</p>
-<p style="margin-top:8px;font-size:13px">🎤 Tap the Mic to talk • 🔊 Tap Speaker to hear me read</p>
+<p>Ask me anything - business, school, songs, images, coding</p>
+<p style="margin-top:8px;font-size:13px">Tap Mic to talk - Tap Speaker to hear me read</p>
 <div class="suggest">
-<button onclick="quickAsk('Explain how to start a business in Nigeria with 50k')">💰 Start business with 50k</button>
-<button onclick="quickAsk('Write a love song for me')">🎵 Write a love song</button>
-<button onclick="quickAsk('Teach me how to make money online as a student in Nigeria')">📚 Make money online</button>
-<button onclick="quickAsk('Write a CV for a job')">📄 Write a CV</button>
+<button onclick="quickAsk('Explain how to start a business in Nigeria with 50k')">Start business with 50k</button>
+<button onclick="quickAsk('Write a love song for me')">Write a love song</button>
+<button onclick="quickAsk('Teach me how to make money online as a student in Nigeria')">Make money online</button>
+<button onclick="quickAsk('Write a CV for a job')">Write a CV</button>
 </div>
-<div style="margin-top:20px"><button onclick="openPay()" style="background:#FFD700;border:none;padding:12px 20px;border-radius:20px;font-weight:bold;cursor:pointer">💳 Upgrade to Petrux PRO — See Plans</button></div>
+<div style="margin-top:20px"><button onclick="openPay()" style="background:#FFD700;border:none;padding:12px 20px;border-radius:20px;font-weight:bold;cursor:pointer">Upgrade to Petrux PRO - See Plans</button></div>
 </div>
 </div>
 <div id="inputArea">
 <div id="tabs">
-<button class="active" onclick="setMode('chat',this)">💬 Chat</button>
-<button onclick="setMode('music',this)">🎵 Music</button>
-<button onclick="setMode('image',this)">🖼️ Image</button>
+<button class="active" id="tabChat" onclick="setMode('chat')">Chat</button>
+<button id="tabMusic" onclick="setMode('music')">Music</button>
+<button id="tabImage" onclick="setMode('image')">Image</button>
 </div>
 <div id="inputBox">
-<input id="input" placeholder="Ask Petrux anything... or tap 🎤 to talk" onkeypress="if(event.key==='Enter') sendMsg()" />
-<button id="micBtn" onclick="toggleVoice()" title="Voice chat">🎤</button>
-<button id="sendBtn" onclick="sendMsg()">➤</button>
+<input id="input" placeholder="Ask Petrux anything..." />
+<button id="micBtn" onclick="toggleVoice()">Mic</button>
+<button id="sendBtn" onclick="sendMsg()">Send</button>
 </div>
-<div id="voiceNote">🎤 Tap Mic to talk &nbsp;|&nbsp; 🔊 Tap Speaker on any answer to hear it</div>
+<div id="voiceNote">Tap Mic to talk | Tap Speaker on any answer to hear it</div>
 </div>
 </div>
 <div id="payModal">
 <div class="payCard">
-<button class="closePay" onclick="closePay()">✕</button>
-<h2 style="color:#111">💳 Petrux PRO</h2>
+<button class="closePay" onclick="closePay()">X</button>
+<h2 style="color:#111">Petrux PRO</h2>
 <p>Unlock unlimited chats, faster answers, image + music, priority support.</p>
 <div class="plan">
-<h3>⭐ PRO Monthly — ₦2,000 / month</h3>
-<p>✅ Unlimited chats ✅ Faster ✅ Images + Music</p>
-<button onclick="selectPlan('PRO Monthly - N2000',2000)">Choose Monthly — ₦2,000</button>
+<h3>PRO Monthly - N2,000 / month</h3>
+<p>Unlimited chats, Faster, Images + Music</p>
+<button onclick="selectPlanMonthly()">Choose Monthly - N2,000</button>
 </div>
 <div class="plan" style="border-color:#FFD700">
-<h3>👑 PRO Yearly — ₦15,000 / year (Save!)</h3>
-<p>✅ Everything in Monthly ✅ Save ₦9,000 ✅ VIP Support</p>
-<button onclick="selectPlan('PRO Yearly - N15000',15000)" style="background:#FFD700;color:#111">Choose Yearly — ₦15,000</button>
+<h3>PRO Yearly - N15,000 / year (Save!)</h3>
+<p>Everything in Monthly, Save N9,000, VIP Support</p>
+<button onclick="selectPlanYearly()" style="background:#FFD700;color:#111">Choose Yearly - N15,000</button>
 </div>
 <div id="paySection" style="display:none">
 <h3 id="selectedPlanText" style="color:#111;margin:10px 0">Pay for PRO</h3>
 <p style="font-size:13px">Choose how you want to pay:</p>
 <div class="payMethods">
-<button id="btnOpay" class="active" onclick="showMethod('opay',this)">🟣 OPay</button>
-<button id="btnCard" onclick="showMethod('card',this)">💳 Bank Card</button>
-<button id="btnBank" onclick="showMethod('bank',this)">🏦 Bank Transfer</button>
+<button id="btnOpay" class="active" onclick="showOpay()">OPay</button>
+<button id="btnCard" onclick="showCard()">Bank Card</button>
+<button id="btnBank" onclick="showBank()">Bank Transfer</button>
 </div>
 <div id="method-opay" class="methodBox active">
-<b>🟣 Pay with OPay</b><br>
+<b>Pay with OPay</b><br>
 Transfer to OPay:<br>
 <b>Name:</b> Peter Oriorowho<br>
-<b>OPay Number:</b> 7041574932 <button class="copyBtn" onclick="copyText2('7041574932')">Copy</button><br>
-<small>After payment, tap "I Have Paid" below.</small>
+<b>OPay Number:</b> 7041574932 <button class="copyBtn" onclick="copyOpay()">Copy</button><br>
+<small>After payment, tap I Have Paid below.</small>
 </div>
 <div id="method-card" class="methodBox">
-<b>💳 Pay with Bank Card / ATM Card</b><br>
+<b>Pay with Bank Card / ATM Card</b><br>
 Pay securely with your Verve, Visa or Mastercard.<br>
-<button class="cardBtn" onclick="payWithCard()">Pay with Card — Secure Checkout →</button>
-<small>You will be taken to a secure page to enter your card. Works for OPay card, GTB, Access, etc.</small>
+<button class="cardBtn" onclick="payWithCard()">Pay with Card - Secure Checkout</button>
+<small>Works for OPay card, GTB, Access, etc.</small>
 </div>
 <div id="method-bank" class="methodBox">
-<b>🏦 Pay with Bank Transfer (Any Bank)</b><br>
+<b>Pay with Bank Transfer (Any Bank)</b><br>
 <b>Bank:</b> OPay<br>
 <b>Account Name:</b> Peter Oriorowho<br>
-<b>Account Number:</b> 7041574932 <button class="copyBtn" onclick="copyText2('7041574932')">Copy</button><br>
-<small>Transfer from GTB, Access, FirstBank, UBA, OPay, PalmPay — any bank works. OPay to OPay is FREE and instant.</small>
+<b>Account Number:</b> 7041574932 <button class="copyBtn" onclick="copyOpay()">Copy</button><br>
+<small>Transfer from GTB, Access, FirstBank, UBA, OPay, PalmPay - any bank works.</small>
 </div>
 <div class="payInfo" id="payInfoBox">
 <b>After you pay:</b><br>
-1. Tap <b>"I Have Paid"</b> below<br>
+1. Tap I Have Paid below<br>
 2. Send receipt on WhatsApp: <b>+2348053782665</b><br>
 3. Peter will activate your PRO in 5 minutes.
 </div>
-<button onclick="iHavePaid()" style="width:100%;background:#10a37f;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:10px">✅ I Have Paid — Send Receipt</button>
+<button onclick="iHavePaid()" style="width:100%;background:#10a37f;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:10px">I Have Paid - Send Receipt</button>
 </div>
 <p style="margin-top:10px;text-align:center;font-size:12px">Free plan: 20 chats per day. PRO: Unlimited.</p>
 </div>
 </div>
 <script>
-let selectedPlan = 'PRO Monthly - N2000';
-let selectedAmount = 2000;
-let allChats = JSON.parse(localStorage.getItem('petrux_all_chats') || '[]');
-let currentChatId = null;
-let history = [];
-let mode = 'chat';
-let lastUserMsg = '';
-let isListening = false;
-let recognition = null;
-let isSpeaking = false;
+var selectedPlan = 'PRO Monthly - N2000';
+var allChats = [];
+try { allChats = JSON.parse(localStorage.getItem('petrux_all_chats') || '[]'); } catch(e) { allChats = []; }
+var currentChatId = null;
+var history = [];
+var mode = 'chat';
+var lastUserMsg = '';
+var isListening = false;
+var recognition = null;
+var isSpeaking = false;
 if(!localStorage.getItem('petrux_memory')){ localStorage.setItem('petrux_memory','Name: Peter Oriorowho. He is the creator of Petrux AI. He likes simple, clear English. He lives in Nekede, Imo State, Nigeria.'); }
-function renderMemory(){ document.getElementById('memoryBox').innerHTML = '<b>🧠 What Petrux Remembers:</b><br>' + localStorage.getItem('petrux_memory'); }
-function editMemory(){ let m = prompt('What should Petrux remember about you?', localStorage.getItem('petrux_memory')); if(m!==null){ localStorage.setItem('petrux_memory', m); renderMemory(); alert('Memory saved!'); } }
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+function renderMemory(){ document.getElementById('memoryBox').innerHTML = '<b>What Petrux Remembers:</b><br>' + localStorage.getItem('petrux_memory'); }
+function editMemory(){ var m = prompt('What should Petrux remember about you?', localStorage.getItem('petrux_memory')); if(m!==null){ localStorage.setItem('petrux_memory', m); renderMemory(); alert('Memory saved!'); } }
 function openPay(){ document.getElementById('payModal').style.display='flex'; document.getElementById('sidebar').classList.remove('open'); }
 function closePay(){ document.getElementById('payModal').style.display='none'; }
-function selectPlan(plan, amount){ selectedPlan=plan; selectedAmount=amount; document.getElementById('paySection').style.display='block'; document.getElementById('selectedPlanText').textContent = 'Pay for ' + plan + ' — ₦' + amount.toLocaleString(); document.getElementById('paySection').scrollIntoView({behavior:'smooth', block:'center'}); }
-function showMethod(method, btn){ document.querySelectorAll('.payMethods button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.methodBox').forEach(d=>d.classList.remove('active')); document.getElementById('method-'+method).classList.add('active'); }
-function copyText2(t){ navigator.clipboard.writeText(t); alert('Copied: ' + t); }
-function payWithCard(){ alert('Card payment coming soon!\n\nFor now, please use OPay or Bank Transfer tab.\nOPay Number: 7041574932\nName: Peter Oriorowho'); showMethod('opay', document.getElementById('btnOpay')); }
-function iHavePaid(){ let wa = "2348053782665"; let msg = encodeURIComponent("Hello Peter, I have paid for " + selectedPlan + " on Petrux AI. Here is my receipt."); window.open("https://wa.me/" + wa + "?text=" + msg, "_blank"); }
-function payNow(plan){ selectPlan(plan, plan.includes('15000')?15000:2000); }
+function selectPlanMonthly(){ selectedPlan='PRO Monthly - N2000'; document.getElementById('paySection').style.display='block'; document.getElementById('selectedPlanText').textContent = 'Pay for PRO Monthly - N2,000'; }
+function selectPlanYearly(){ selectedPlan='PRO Yearly - N15000'; document.getElementById('paySection').style.display='block'; document.getElementById('selectedPlanText').textContent = 'Pay for PRO Yearly - N15,000'; }
+function showOpay(){ document.getElementById('btnOpay').className='active'; document.getElementById('btnCard').className=''; document.getElementById('btnBank').className=''; document.getElementById('method-opay').className='methodBox active'; document.getElementById('method-card').className='methodBox'; document.getElementById('method-bank').className='methodBox'; }
+function showCard(){ document.getElementById('btnOpay').className=''; document.getElementById('btnCard').className='active'; document.getElementById('btnBank').className=''; document.getElementById('method-opay').className='methodBox'; document.getElementById('method-card').className='methodBox active'; document.getElementById('method-bank').className='methodBox'; }
+function showBank(){ document.getElementById('btnOpay').className=''; document.getElementById('btnCard').className=''; document.getElementById('btnBank').className='active'; document.getElementById('method-opay').className='methodBox'; document.getElementById('method-card').className='methodBox'; document.getElementById('method-bank').className='methodBox active'; }
+function copyOpay(){ try{ navigator.clipboard.writeText('7041574932'); }catch(e){} alert('Copied: 7041574932'); }
+function payWithCard(){ alert('Card payment coming soon! For now, please use OPay or Bank Transfer. OPay Number: 7041574932 Name: Peter Oriorowho'); showOpay(); }
+function iHavePaid(){ var msg = encodeURIComponent('Hello Peter, I have paid for ' + selectedPlan + ' on Petrux AI. Here is my receipt.'); window.open('https://wa.me/2348053782665?text=' + msg, '_blank'); }
 if(localStorage.getItem('petrux_theme')==='dark') document.body.classList.add('dark');
 function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem('petrux_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); }
-function setMode(m, btn){ mode=m; document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('input').placeholder = m==='chat' ? 'Ask Petrux anything... or tap 🎤 to talk' : m==='music' ? 'What song do you want?' : 'What image do you want?'; }
-// ===== VOICE CHAT =====
+function setMode(m){ mode=m; document.getElementById('tabChat').className=''; document.getElementById('tabMusic').className=''; document.getElementById('tabImage').className=''; if(m==='chat') document.getElementById('tabChat').className='active'; if(m==='music') document.getElementById('tabMusic').className='active'; if(m==='image') document.getElementById('tabImage').className='active'; document.getElementById('input').placeholder = m==='chat' ? 'Ask Petrux anything...' : m==='music' ? 'What song do you want?' : 'What image do you want?'; }
 function toggleVoice(){
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRec){ alert('Voice not supported on this browser. Please use Chrome on Android.'); return; }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('Voice not supported. Please use Chrome on Android.'); return; }
   if(isListening && recognition){ recognition.stop(); return; }
-  recognition = new SpeechRec();
+  recognition = new SR();
   recognition.lang = 'en-NG';
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  recognition.onstart = function(){ isListening = true; document.getElementById('micBtn').classList.add('listening'); document.getElementById('voiceNote').textContent = '🎤 Listening... Speak now... Tap Mic again to stop'; };
-  recognition.onresult = function(e){ const text = e.results[0][0].transcript; document.getElementById('input').value = text; document.getElementById('voiceNote').textContent = 'You said: "' + text + '" — Sending...'; sendMsg(); };
-  recognition.onerror = function(){ isListening = false; document.getElementById('micBtn').classList.remove('listening'); document.getElementById('voiceNote').textContent = 'Could not hear you. Try again.'; };
-  recognition.onend = function(){ isListening = false; document.getElementById('micBtn').classList.remove('listening'); document.getElementById('voiceNote').textContent = '🎤 Tap Mic to talk  |  🔊 Tap Speaker on any answer to hear it'; };
+  recognition.onstart = function(){ isListening = true; document.getElementById('micBtn').className='listening'; document.getElementById('voiceNote').textContent = 'Listening... Speak now...'; };
+  recognition.onresult = function(e){ var text = e.results[0][0].transcript; document.getElementById('input').value = text; sendMsg(); };
+  recognition.onerror = function(){ isListening = false; document.getElementById('micBtn').className=''; };
+  recognition.onend = function(){ isListening = false; document.getElementById('micBtn').className=''; document.getElementById('voiceNote').textContent = 'Tap Mic to talk | Tap Speaker on any answer to hear it'; };
   recognition.start();
 }
-function speakText(text, btn){
-  if(isSpeaking){ window.speechSynthesis.cancel(); isSpeaking = false; if(btn) btn.textContent = '🔊 Read Aloud'; return; }
-  let clean = text.replace(/[*#_]/g,'').replace(/https?:\/\/\S+/g,'').slice(0,2000);
-  const utter = new SpeechSynthesisUtterance(clean);
-  utter.lang = 'en-NG'; utter.rate = 1; utter.pitch = 1;
-  utter.onend = function(){ isSpeaking = false; if(btn) btn.textContent = '🔊 Read Aloud'; };
-  utter.onerror = function(){ isSpeaking = false; if(btn) btn.textContent = '🔊 Read Aloud'; };
-  isSpeaking = true; if(btn) btn.textContent = '⏹️ Stop';
+function speakBtn(btn){
+  var box = btn.parentElement.parentElement;
+  var text = box.getAttribute('data-full') || box.innerText;
+  if(isSpeaking){ window.speechSynthesis.cancel(); isSpeaking = false; btn.textContent = 'Read Aloud'; return; }
+  var clean = text.replace(/[*#_]/g,'').slice(0,2000);
+  var utter = new SpeechSynthesisUtterance(clean);
+  utter.lang = 'en-NG'; utter.rate = 1;
+  utter.onend = function(){ isSpeaking = false; btn.textContent = 'Read Aloud'; };
+  utter.onerror = function(){ isSpeaking = false; btn.textContent = 'Read Aloud'; };
+  isSpeaking = true; btn.textContent = 'Stop';
   window.speechSynthesis.speak(utter);
 }
-function saveChats(){ localStorage.setItem('petrux_all_chats', JSON.stringify(allChats)); localStorage.setItem('petrux_current', currentChatId); renderChatList(); }
-function renderChatList(){ const list=document.getElementById('chatList'); list.innerHTML=''; allChats.slice().reverse().forEach(c=>{ const div=document.createElement('div'); div.className='chatItem'+(c.id===currentChatId?' active':''); div.textContent='💬 '+(c.title||'New Chat'); div.onclick=()=>loadChat(c.id); list.appendChild(div); }); }
-function newChat(){ window.speechSynthesis.cancel(); isSpeaking=false; currentChatId=Date.now().toString(); history=[]; document.getElementById('chat').innerHTML=`<div class="welcome" id="welcome"><h2>What can I help with?</h2><p>Ask me anything — business, school, songs, images, coding</p><p style="margin-top:8px;font-size:13px">🎤 Tap the Mic to talk • 🔊 Tap Speaker to hear me read</p><div style="margin-top:20px"><button onclick="openPay()" style="background:#FFD700;border:none;padding:12px 20px;border-radius:20px;font-weight:bold;cursor:pointer">💳 Upgrade to Petrux PRO</button></div></div>`; allChats.push({id:currentChatId,title:'New Chat',history:[]}); saveChats(); if(window.innerWidth<700) document.getElementById('sidebar').classList.remove('open'); }
-function loadChat(id){ const c=allChats.find(x=>x.id===id); if(!c) return; currentChatId=id; history=c.history||[]; const chatEl=document.getElementById('chat'); chatEl.innerHTML=''; history.forEach(h=>{ if(h.role==='user') addMsg('user',h.text); else addMsg('ai',h.text,true); }); if(history.length===0) chatEl.innerHTML=`<div class="welcome"><h2>What can I help with?</h2><p>Ask me anything</p></div>`; renderChatList(); if(window.innerWidth<700) document.getElementById('sidebar').classList.remove('open'); }
+function saveChats(){ try{ localStorage.setItem('petrux_all_chats', JSON.stringify(allChats)); localStorage.setItem('petrux_current', currentChatId); }catch(e){} renderChatList(); }
+function renderChatList(){ var list=document.getElementById('chatList'); list.innerHTML=''; for(var i=allChats.length-1;i>=0;i--){ var c=allChats[i]; var div=document.createElement('div'); div.className='chatItem'+(c.id===currentChatId?' active':''); div.textContent = c.title||'New Chat'; (function(id){ div.onclick=function(){ loadChat(id); }; })(c.id); list.appendChild(div); } }
+function newChat(){ try{ window.speechSynthesis.cancel(); }catch(e){} isSpeaking=false; currentChatId=Date.now().toString(); history=[]; document.getElementById('chat').innerHTML='<div class="welcome" id="welcome"><h2>What can I help with?</h2><p>Ask me anything - business, school, songs, images, coding</p><div style="margin-top:20px"><button onclick="openPay()" style="background:#FFD700;border:none;padding:12px 20px;border-radius:20px;font-weight:bold;cursor:pointer">Upgrade to Petrux PRO</button></div></div>'; allChats.push({id:currentChatId,title:'New Chat',history:[]}); saveChats(); if(window.innerWidth<700) document.getElementById('sidebar').classList.remove('open'); }
+function loadChat(id){ var c=null; for(var i=0;i<allChats.length;i++){ if(allChats[i].id===id) c=allChats[i]; } if(!c) return; currentChatId=id; history=c.history||[]; var chatEl=document.getElementById('chat'); chatEl.innerHTML=''; for(var j=0;j<history.length;j++){ if(history[j].role==='user') addMsg('user',history[j].text); else addMsg('ai',history[j].text,true); } if(history.length===0) chatEl.innerHTML='<div class="welcome"><h2>What can I help with?</h2><p>Ask me anything</p></div>'; renderChatList(); if(window.innerWidth<700) document.getElementById('sidebar').classList.remove('open'); }
 function clearMemory(){ allChats=[]; history=[]; currentChatId=null; localStorage.removeItem('petrux_all_chats'); localStorage.removeItem('petrux_current'); localStorage.setItem('petrux_memory','Name: Peter Oriorowho. He is the creator of Petrux AI. He likes simple, clear English.'); renderMemory(); document.getElementById('chat').innerHTML=''; addMsg('ai','Memory cleared. Hello Peter! How can I help you today?'); renderChatList(); }
-function formatText(text){ let t=text.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>'); t=t.replace(/^### (.*$)/gm,'<h3>$1</h3>'); t=t.replace(/^## (.*$)/gm,'<h3>$1</h3>'); return t; }
-function addMsg(role,text,showActions=false){ const welcome=document.getElementById('welcome'); if(welcome) welcome.remove(); const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className='msg '+role; if(role==='ai'){ div.innerHTML=formatText(text); if(showActions){ const acts=document.createElement('div'); acts.className='actions'; acts.innerHTML=`<button onclick="copyText(this)">📋 Copy</button> <button onclick="speakText(this.parentElement.parentElement.dataset.fullText||this.parentElement.parentElement.innerText, this)">🔊 Read Aloud</button> <button onclick="regenerate()">🔄 Regenerate</button>`; div.appendChild(acts); div.dataset.fullT
+function formatText(text){ var t=text.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>'); return t; }
+function addMsg(role,text,showActions){
+  var welcome=document.getElementById('welcome'); if(welcome) welcome.remove();
+  var chat=document.getElementById('chat'); var div=document.createElement('div'); div.className='msg '+role;
+  if(role==='ai'){ div.innerHTML=formatText(text); if(showActions){ var acts=document.createElement('div'); acts.className='actions'; var b1=document.createElement('button'); b1.textContent='Copy'; b1.onclick=function(){ copyThis(this); }; var b2=document.createElement('button'); b2.textContent='Read Aloud'; b2.onclick=functio
