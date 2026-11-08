@@ -16,14 +16,13 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// === HELPER: Call Gemini - NOW WITH DEEP THINKING ===
-async function callGemini(prompt, isChat = false) {
+// === HELPER: Call Gemini ===
+async function callGemini(prompt) {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) return "Petrux AI is waiting for key";
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_KEY;
-  const payload = { 
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + GEMINI_KEY;
+  const payload = {
     contents: [{ parts: [{ text: prompt }] }],
-    // THIS IS THE DEEP THINKING SETTING - This is what makes it like ChatGPT
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 4000,
@@ -63,9 +62,10 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply: "I was created by Peter Oriorowho. He is my creator. I am Petrux AI, built by him to help you." });
   }
 
-  // --- SMART MEMORY ---
+  // --- SMART MEMORY: Build context from history, but do NOT repeat it ---
   let memoryContext = "";
   if (history && history.length > 0) {
+    // Take only last 10, to keep it fast
     const lastHistory = history.slice(-10);
     memoryContext = lastHistory.map(h => {
       if (h.role === 'user') return "User said: " + h.text;
@@ -90,7 +90,7 @@ ${message}
 
 Think deeply step by step, then give a complete detailed answer like ChatGPT would. Answer in proper English:`;
 
-  const reply = await callGemini(systemPrompt, true);
+  const reply = await callGemini(systemPrompt);
   res.json({ reply });
 });
 
