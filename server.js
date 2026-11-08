@@ -7,53 +7,56 @@ res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Petrux AI</title>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
-body{background:#fff;color:#111;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-header{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee}
-.hl{display:flex;align-items:center;gap:10px}
-#menuBtn{background:none;border:none;width:42px;height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer}
-#menuBtn span{width:22px;height:2.5px;background:#111;border-radius:2px;display:block}
-header h1{font-size:19px}
-header p{font-size:12px;color:#888}
-.hr{display:flex;gap:8px;align-items:center}
-#themeBtn{background:#111;color:#fff;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold}
-#proBtn{background:#FFD700;color:#111;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold}
-#proBadge{background:#FFD700;color:#111;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;font-weight:bold}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;overflow-x:hidden}
+body{background:#fff;color:#111;display:flex;flex-direction:column;height:100dvh;min-height:100dvh;overflow:hidden}
+header{flex-shrink:0;padding:10px 10px 10px 8px;display:flex;justify-content:space-between;align-items:center;gap:6px;border-bottom:1px solid #eee;background:#fff;z-index:10;width:100%;padding-top:max(10px,env(safe-area-inset-top))}
+.hl{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+#menuBtn{background:none;border:none;width:38px;height:38px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer}
+#menuBtn span{width:20px;height:2.5px;background:#111;border-radius:2px;display:block}
+.hl div{min-width:0;flex:1}
+header h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+header p{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hr{display:flex;gap:6px;align-items:center;flex-shrink:0}
+#themeBtn{background:#111;color:#fff;border:none;padding:9px 11px;border-radius:20px;cursor:pointer;font-weight:bold;font-size:13px;white-space:nowrap}
+#proBtn{background:#FFD700;color:#111;border:none;padding:9px 11px;border-radius:20px;cursor:pointer;font-weight:bold;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:3px;line-height:1}
+#proBadge{background:#FFD700;color:#111;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:4px;font-weight:bold;white-space:nowrap}
 #sidebarOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
-#sidebar{position:fixed;top:0;left:-280px;width:260px;height:100%;background:#fff;z-index:1001;transition:.25s;padding:16px;display:flex;flex-direction:column}
+#sidebar{position:fixed;top:0;left:-280px;width:260px;max-width:85vw;height:100dvh;background:#fff;z-index:1001;transition:.25s;padding:16px;display:flex;flex-direction:column;overflow-y:auto}
 #sidebar.open{left:0}
 #sidebar button{width:100%;text-align:left;background:#f7f7f8;border:none;padding:12px;border-radius:10px;margin-bottom:8px;font-size:15px;cursor:pointer}
-#chat{flex:1;overflow-y:auto;padding:20px 14px;max-width:760px;width:100%;margin:0 auto}
-.welcome{text-align:center;margin-top:20px}
-.welcome h2{font-size:26px}
-.welcome p{color:#888;margin-top:8px}
+#chat{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 12px 10px;max-width:760px;width:100%;margin:0 auto}
+.welcome{text-align:center;margin-top:18px;padding:0 6px}
+.welcome h2{font-size:24px;line-height:1.3}
+.welcome p{color:#888;margin-top:8px;font-size:14px;line-height:1.5}
 .suggest{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
-.suggest button{padding:9px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;cursor:pointer}
-.msg{max-width:90%;padding:13px 16px;border-radius:16px;margin-bottom:14px;line-height:1.6;font-size:15px;white-space:pre-wrap}
+.suggest button{padding:9px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:13px;max-width:100%}
+.msg{max-width:92%;padding:12px 14px;border-radius:16px;margin-bottom:12px;line-height:1.6;font-size:15px;white-space:pre-wrap;word-break:break-word}
 .user{background:#10a37f;color:#fff;margin-left:auto}
 .ai{background:#f7f7f8;border:1px solid #eee;margin-right:auto}
-.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.actions button{background:#fff;border:1px solid #ddd;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px}
-#inputArea{padding:12px;max-width:760px;width:100%;margin:0 auto}
-#tabs{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
-#tabs button{padding:8px 16px;border-radius:20px;border:1px solid #ddd;background:#f0f0f0;cursor:pointer}
+.actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.actions button{background:#fff;border:1px solid #ddd;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px}
+#inputArea{flex-shrink:0;padding:10px 10px max(10px,env(safe-area-inset-bottom));max-width:760px;width:100%;margin:0 auto;background:#fff;border-top:1px solid #eee;z-index:10}
+#tabs{display:flex;gap:6px;justify-content:center;margin-bottom:9px;flex-wrap:wrap}
+#tabs button{padding:8px 14px;border-radius:20px;border:1px solid #ddd;background:#f0f0f0;cursor:pointer;font-size:13px}
 #tabs button.active{background:#10a37f;color:#fff}
-#inputBox{display:flex;gap:8px;align-items:center}
-#inputWrap{flex:1;display:flex;align-items:center;background:#f0f2f5;padding:6px 6px 6px 16px;border-radius:30px;border:1px solid #e0e0e0}
-#input{flex:1;border:none;outline:none;font-size:15px;background:transparent;padding:10px 0}
-#micBtn{background:none;border:none;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
-#sendBtn{background:#00a884;color:#fff;border:none;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
-#proModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center;padding:20px}
-#proBox{background:#fff;border-radius:18px;padding:22px;max-width:380px;width:100%;text-align:center}
+#inputBox{display:flex;gap:8px;align-items:center;width:100%}
+#inputWrap{flex:1;min-width:0;display:flex;align-items:center;background:#f0f2f5;padding:4px 4px 4px 14px;border-radius:30px;border:1px solid #e0e0e0}
+#input{flex:1;min-width:0;border:none;outline:none;font-size:15px;background:transparent;padding:10px 0}
+#micBtn{background:none;border:none;width:38px;height:38px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px}
+#sendBtn{background:#00a884;color:#fff;border:none;width:46px;height:46px;flex-shrink:0;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px}
+#proModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center;padding:16px}
+#proBox{background:#fff;border-radius:18px;padding:20px;max-width:380px;width:100%;text-align:center;max-height:90dvh;overflow-y:auto}
 #proBox h2{font-size:22px}
 #proBox ul{text-align:left;margin:14px 0;line-height:1.9;font-size:14px}
 #payBtn{background:#10a37f;color:#fff;border:none;padding:14px;width:100%;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:8px}
 #closePro{background:#eee;border:none;padding:10px;width:100%;border-radius:12px;margin-top:8px;cursor:pointer}
 body.dark{background:#212121;color:#eee}
+body.dark header,body.dark #inputArea{background:#212121;border-color:#333}
 body.dark .ai{background:#2f2f2f;border-color:#444}
 body.dark #inputWrap{background:#2f2f2f;border-color:#444}
 body.dark #input{color:#fff}
@@ -65,13 +68,14 @@ body.dark #tabs button{background:#2f2f2f;color:#eee;border-color:#444}
 body.dark .actions button{background:#444;color:#eee;border-color:#555}
 body.dark #proBox{background:#2f2f2f;color:#eee}
 body.dark #closePro{background:#444;color:#eee}
+@media(max-width:360px){header h1{font-size:15px}header p{font-size:10px}#proBtn,#themeBtn{padding:8px 9px;font-size:12px}.welcome h2{font-size:21px}}
 </style>
 </head>
 <body>
 <header>
   <div class="hl">
     <button id="menuBtn" onclick="openMenu()"><span></span><span></span><span></span></button>
-    <div><h1>Petrux AI <span id="proBadge" style="display:none">PRO ⭐</span></h1><p>Created by Peter Oriorowho</p></div>
+    <div><h1>Petrux AI <span id="proBadge" style="display:none">PRO</span></h1><p>Created by Peter Oriorowho</p></div>
   </div>
   <div class="hr"><button id="proBtn" onclick="openPro()">⭐ Pro</button><button id="themeBtn" onclick="toggleTheme()">Dark</button></div>
 </header>
