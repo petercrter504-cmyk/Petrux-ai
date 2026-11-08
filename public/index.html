@@ -57,7 +57,6 @@ label{font-size:14px;color:#c084fc;display:block;margin-bottom:5px}
 <button class="btn btn-purple" onclick="send()">Ask Petrux AI →</button>
 <button class="btn btn-pink" onclick="talk()">🎙️ Talk to Petrux - Tap & Speak</button>
 
-<!-- VOICE ON / OFF - DEFAULT OFF -->
 <button id="voiceToggle" class="btn btn-dark" onclick="toggleVoice()">🔇 Voice: OFF - Tap to Turn ON</button>
 <button class="btn btn-orange" onclick="hearSpeak()">🔊 Hear Petrux Speak</button>
 
@@ -100,7 +99,7 @@ function previewImage(e){
   reader.readAsDataURL(file);
 }
 
-// === VOICE ON / OFF ===
+// === FIXED VOICE ===
 function updateVoiceButton(){
   let btn = document.getElementById('voiceToggle');
   if(!btn) return;
@@ -114,23 +113,53 @@ function updateVoiceButton(){
   }
   localStorage.setItem('petruxVoice', voiceOn ? 'on' : 'off');
 }
+
+function unlockVoice(){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.getVoices();
+  // Unlock: speak small silent thing on tap
+  let u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  window.speechSynthesis.speak(u);
+}
+
+function speakText(text){
+  if(!voiceOn) return;
+  if(!('speechSynthesis' in window)){ alert('Your phone no support voice talk.'); return; }
+  if(!text) return;
+  // Clean text - remove emoji / stars so e no choke
+  text = text.replace(/[*#_~`]/g,'').replace(/https?:\/\/\S+/g,' link ').substring(0, 800);
+  window.speechSynthesis.cancel();
+  // Chrome sometimes need resume
+  window.speechSynthesis.resume();
+  let voices = window.speechSynthesis.getVoices();
+  let u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-NG';
+  u.rate = 1; u.pitch = 1; u.volume = 1;
+  // Pick English voice if e dey
+  let v = voices.find(v=>v.lang && v.lang.toLowerCase().startsWith('en')) || voices[0];
+  if(v) u.voice = v;
+  u.onerror = function(){ document.getElementById('status').innerText = 'Voice error, try Hear button again.'; };
+  window.speechSynthesis.speak(u);
+  // Fix for Chrome wey dey cut long talk
+  let timer = setInterval(()=>{
+    if(!window.speechSynthesis.speaking){ clearInterval(timer); }
+    else { window.speechSynthesis.resume(); }
+  }, 3000);
+}
+
 function toggleVoice(){
   voiceOn = !voiceOn;
   updateVoiceButton();
-  if(voiceOn) speakText('Voice don turn on. I be Petrux, I dey here.');
-}
-function speakText(text){
-  if(!voiceOn) return; // If OFF, no talk
-  if(!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  let u = new SpeechSynthesisUtterance(text);
-  u.rate = 1; u.pitch = 1;
-  window.speechSynthesis.speak(u);
+  if(voiceOn){
+    unlockVoice();
+    setTimeout(()=>{ speakText('Voice don turn on. I be Petrux, I dey here for you.'); }, 200);
+  }
 }
 function hearSpeak(){
   if(!lastReply){ alert('Ask Petrux something first!'); return; }
-  if(!voiceOn){ voiceOn = true; updateVoiceButton(); }
-  speakText(lastReply);
+  if(!voiceOn){ voiceOn = true; updateVoiceButton(); unlockVoice(); }
+  setTimeout(()=>{ speakText(lastReply); }, 200);
 }
 function talk(){
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){ alert('Your browser no support voice. Type am.'); return; }
@@ -185,6 +214,11 @@ function showGallery(){
   let div = document.getElementById('gallery');
   if(g.length===0){ div.innerHTML = '<p>No image yet. Generate one first!</p>'; return; }
   div.innerHTML = '<h3>My Gallery</h3>' + g.map(u=>'<img src="'+u+'">').join('');
+}
+// Load voices early
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = function(){ window.speechSynthesis.getVoices(); };
+  window.speechSynthesis.getVoices();
 }
 updateVoiceButton();
 </script>
