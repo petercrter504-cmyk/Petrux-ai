@@ -1,7 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(cors());
 app.use(express.json({limit:'50mb'}));
@@ -22,14 +29,14 @@ ABOUT YOUR CREATOR - USE ONLY WHEN ASKED:
 - Born and Raised: Edo State, Nigeria
 - Education: Holy Trinity Grammar School, wrote WAEC at Saint Daniel's Secondary School
 - Occupation: Musician / World Superstar / Creator
-- Story: Peter created Petrux AI by himself to help people write songs, generate images, and create content. His mission is to put Nigeria on the world map through music, AI and creativity.
+- Story: Peter created Petrux AI by himself to help people write songs, generate images, and create content. His mission is to put Nigeria on the world map.
 
-STRICT RULES - YOU MUST FOLLOW:
-1. DO NOT mention Peter Oriorowho, your creator, or your biography UNLESS the user asks: "who are you?", "who created you?", "who is Peter?", "who is your boss?", "who is Petrux?"
-2. If user asks normal question like "give me best reply", "write song", "what is maths", "help me chat a girl" - JUST ANSWER THE QUESTION DIRECTLY. No intro. No "I am created by Peter".
+STRICT RULES:
+1. DO NOT mention Peter Oriorowho unless user asks: "who are you?", "who created you?", "who is Peter?", "who is your boss?", "who is Petrux?"
+2. If user asks normal question like "give me best reply", "write song", "help me chat a girl" - JUST ANSWER DIRECTLY. No intro. No "I am created by Peter".
 3. Only when user asks about creator - then say: "I am Petrux AI, created by Peter Oriorowho" + short bio.
-4. Always answer in friendly Pidgin + English mix. Be helpful, funny, direct.
-5. Never say you were created by OpenAI or Meta. You were created by Peter Oriorowho.
+4. Always answer in friendly Pidgin + English mix.
+5. Never say you were created by OpenAI or Meta.
 `;
 
 async function askAI(prompt, system){
@@ -60,7 +67,7 @@ app.post('/api/chat', async (req,res)=>{
 // ================= MUSIC =================
 app.post('/api/music', async (req,res)=>{
   try{
-    let reply = await askAI('Write a full Afrobeats song about: '+req.body.prompt, 'You are a music writer. Write in Peter Oriorowho style - Afrobeats, catchy, world superstar energy. Include Verse, Chorus, Verse 2, Bridge, Outro.');
+    let reply = await askAI('Write a full Afrobeats song about: '+req.body.prompt, 'You are a music writer. Write in Peter Oriorowho style - Afrobeats, catchy, Verse, Chorus, Verse 2, Bridge, Outro.');
     res.json({music:reply, reply});
   }catch(e){ res.json({error:e.message}); }
 });
@@ -82,11 +89,7 @@ app.post('/api/generate-image', async (req,res)=>{
 // ================= CLONE IMAGE =================
 app.post('/api/clone-image', async (req,res)=>{
   try{
-    // If user send image + prompt, we use gpt-image-1 edit if available, else fallback to generate
-    if(!req.body.image){
-      return res.json({error:'Upload image first to clone am.'});
-    }
-    // For now, use prompt to generate similar image
+    if(!req.body.image) return res.json({error:'Upload image first to clone am.'});
     let r = await fetch('https://api.openai.com/v1/images/generations',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},
@@ -101,9 +104,7 @@ app.post('/api/clone-image', async (req,res)=>{
 // ================= EDIT IMAGE =================
 app.post('/api/edit-image', async (req,res)=>{
   try{
-    if(!req.body.image){
-      return res.json({error:'Upload image first to edit am.'});
-    }
+    if(!req.body.image) return res.json({error:'Upload image first to edit am.'});
     let r = await fetch('https://api.openai.com/v1/images/generations',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},
@@ -115,7 +116,6 @@ app.post('/api/edit-image', async (req,res)=>{
   }catch(e){ res.json({error:e.message}); }
 });
 
-// ================= HEALTH CHECK =================
 app.get('/api/health', (req,res)=>{ res.json({status:'Petrux live', creator:'Peter Oriorowho'}); });
 
 const PORT = process.env.PORT || 3000;
