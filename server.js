@@ -1,80 +1,65 @@
-import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
 const app = express();
-const PORT = process.env.PORT || 10000;
-app.use(express.json({ limit: "20mb" }));
-app.use(express.static(path.join(__dirname, "public")));
-app.get("/health", (req,res)=>res.json({status:"ok"}));
+app.use(cors());
+app.use(express.json({limit:'50mb'}));
+app.use(express.static(path.join(__dirname,'public')));
 
-app.post("/api/chat", async (req,res)=>{
-  const message = req.body?.message;
-  if(!message) return res.json({reply:"Send message na"});
-  const KEY = process.env.GEMINI_API_KEY;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key="+KEY;
-  const prompt = "You are Petrux AI. Your creator is Peter Oriorowho. Never say you are Gemini or Google or Meta AI. If someone asks 'Who are you?' reply exactly: 'I am Petrux AI, created by Peter Oriorowho' and continue helping. User: "+message;
-  try{
-    const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
-    const d = await r.json();
-    if(d.error) return res.json({reply:"Gemini error: "+d.error.message});
-    res.json({reply:d.candidates?.[0]?.content?.parts?.[0]?.text||"Sorry, something go wrong."});
-  }catch(e){res.json({reply:"Server error: "+e.message})}
-});
+const OPENAI_KEY = process.env.OPENAI_API_KEY;
 
-app.post("/api/music", async (req,res)=>{
-  const prompt = req.body.prompt||req.body.message||"";
-  const KEY = process.env.GEMINI_API_KEY;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key="+KEY;
-  try{
-    const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:"You are Petrux AI music creator, created by Peter Oriorowho. Write full song lyrics for: "+prompt+". Catchy Afrobeats, Intro, Verse 1, Chorus, Verse 2, Chorus, Outro."}]}]})});
-    const d = await r.json();
-    const reply = d.candidates?.[0]?.content?.parts?.[0]?.text||"Music fail.";
-    res.json({reply,music:reply});
-  }catch(e){res.json({reply:"Music error: "+e.message})}
-});
+// === PETER BIO - ONLY WHEN ASKED ===
+const PETER_BIO = `
+You are Petrux AI, created by Peter Oriorowho.
 
-async function callGeminiImage(promptText, imageBase64){
-  const KEY = process.env.GEMINI_API_KEY;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key="+KEY;
-  const parts=[{text:promptText}];
-  if(imageBase64){ const clean=imageBase64.split(",")[1]||imageBase64; parts.push({inlineData:{mimeType:"image/png",data:clean}}); }
-  const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts}],generationConfig:{responseModalities:["TEXT","IMAGE"]}})});
-  const d = await r.json();
-  if(d.error) throw new Error(d.error.message);
-  const out=d.candidates?.[0]?.content?.parts||[];
-  for(let p of out){ if(p.inlineData) return "data:image/png;base64,"+p.inlineData.data; }
-  throw new Error("Gemini no return image.");
+ABOUT YOUR CREATOR:
+- Full Name: Peter Oriorowho
+- Stage Name: Petrux
+- DOB: March 31, 2005, Age 21
+- From: Delta State, Born and Raised in Edo State, Nigeria
+- Education: Holy Trinity Grammar School, WAEC at Saint Daniel's Secondary School
+- Occupation: Musician / World Superstar / Creator
+- Story: Peter created Petrux AI by himself to help people write songs, generate images, and create content. His mission is to put Nigeria on the world map.
+
+IMPORTANT RULES - READ CAREFULLY:
+- DO NOT mention Peter Oriorowho unless user ASKS about him, who created you, who is Peter, who is your boss, who is Petrux.
+- If user asks normal question - JUST ANSWER THE QUESTION DIRECTLY. Do NOT introduce yourself. Do NOT say "I am created by Peter".
+- Only when user asks "who created you?" or "who are you?" - then say "I am Petrux AI, created by Peter Oriorowho" + short bio.
+- Always answer in friendly Pidgin + English mix.
+- Never say you were created by OpenAI or Meta.
+`;
+
+async function askAI(prompt, system){
+  let r = await fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},
+    body: JSON.stringify({ model:'gpt-4o-mini', messages:[ {role:'system', content: PETER_BIO + ' ' + system}, {role:'user', content: prompt} ] })
+  });
+  let d = await r.json();
+  return d.choices?.[0]?.message?.content || 'Sorry, try again';
 }
 
-app.post("/api/generate-image", async (req,res)=>{
-  try{
-    const prompt = req.body.prompt||req.body.message||"";
-    if(!prompt) return res.json({error:"Type wetin you want"});
-    const encoded = encodeURIComponent(prompt+", high quality, realistic, detailed, 4k");
-    const imageUrl = "https://image.pollinations.ai/prompt/"+encoded+"?width=1024&height=1024&seed="+Math.floor(Math.random()*999999)+"&nologo=true&model=flux";
-    res.json({image:imageUrl, reply:"✅ Done! Your image don ready."});
-  }catch(e){res.json({error:e.message})}
+app.post('/api/chat', async (req,res)=>{
+  try{ let reply = await askAI(req.body.message, 'You are a helpful assistant. Answer directly, no intro.'); res.json({reply}); }
+  catch(e){ res.json({error:e.message}); }
 });
 
-app.post("/api/clone-image", async (req,res)=>{
-  try{
-    const image=req.body.image; const prompt=req.body.prompt||"";
-    if(!image) return res.json({error:"Upload image first"});
-    const newImage = await callGeminiImage("Recreate this image exactly same style, same person, same background, high quality. "+prompt, image);
-    res.json({image:newImage, reply:"✅ Cloned!"});
-  }catch(e){res.json({error:"Clone need Gemini quota. Use Generate for now. "+e.message})}
+app.post('/api/music', async (req,res)=>{
+  try{ let reply = await askAI('Write a full Afrobeats song about: '+req.body.prompt, 'You are a music writer. Write in Peter Oriorowho style.'); res.json({music:reply, reply}); }
+  catch(e){ res.json({error:e.message}); }
 });
 
-app.post("/api/edit-image", async (req,res)=>{
+app.post('/api/generate-image', async (req,res)=>{
   try{
-    const image=req.body.image; const prompt=req.body.prompt||req.body.message||"";
-    if(!image) return res.json({error:"Upload image first"});
-    if(!prompt) return res.json({error:"Type wetin you want change"});
-    const newImage = await callGeminiImage("Edit this image: "+prompt+". Keep same person and background.", image);
-    res.json({image:newImage, reply:"✅ Edited!"});
-  }catch(e){res.json({error:"Edit need Gemini quota. Use Generate for now. "+e.message})}
+    let r = await fetch('https://api.openai.com/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},body:JSON.stringify({model:'dall-e-3', prompt:req.body.prompt, size:'1024x1024'})});
+    let d = await r.json();
+    res.json({image:d.data?.[0]?.url, reply:'Your image don ready!'});
+  }catch(e){ res.json({error:e.message}); }
 });
 
-app.listen(PORT, ()=>console.log("Petrux AI running "+PORT));
+app.post('/api/clone-image', async (req,res)=>{ res.json({error:'Clone need image edit model, use Generate for now'}); });
+app.post('/api/edit-image', async (req,res)=>{ res.json({error:'Edit need image edit model, use Generate for now'}); });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, ()=> console.log('Petrux live on '+PORT));
