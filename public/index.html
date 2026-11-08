@@ -56,7 +56,7 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 #input{flex:1;padding:12px;border:none;outline:none;font-size:15px;background:transparent;color:inherit}
 #sendBtn{background:#10a37f;color:#fff;border:none;padding:12px 18px;border-radius:12px;cursor:pointer;font-weight:bold}
 #payModal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999;justify-content:center;align-items:center;padding:16px}
-#payModal .payCard{background:#fff !important;color:#111 !important;border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
+#payModal .payCard{background:#fff !important;color:#111 !important;border-radius:16px;padding:20px;max-width:430px;width:100%;max-height:90vh;overflow-y:auto}
 #payModal .payCard p{color:#444 !important}
 #payModal .plan{background:#fff !important;color:#111 !important;border:2px solid #10a37f;border-radius:12px;padding:12px;margin-bottom:10px}
 #payModal .plan p{color:#444 !important}
@@ -65,6 +65,14 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 .payInfo{background:#fff8dc !important;color:#111 !important;padding:12px;border:2px dashed #e6c200;border-radius:10px;font-size:14px;line-height:1.7;margin-top:10px}
 .payInfo b{color:#000 !important}
 .closePay{float:right;background:#eee;border:none;padding:6px 10px;border-radius:50%;cursor:pointer;color:#111}
+.payMethods{display:flex;gap:8px;margin:12px 0}
+.payMethods button{flex:1;padding:10px 6px;border-radius:10px;border:2px solid #ddd;background:#fff;cursor:pointer;font-weight:bold;font-size:13px;color:#111}
+.payMethods button.active{background:#10a37f;color:#fff;border-color:#10a37f}
+.methodBox{display:none;background:#f7f7f8;border-radius:12px;padding:12px;font-size:14px;line-height:1.7;color:#111}
+.methodBox.active{display:block}
+.methodBox b{color:#000}
+.copyBtn{background:#111;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px;margin-left:6px}
+.cardBtn{width:100%;background:#6C5CE7;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:8px}
 @media(max-width:700px){.sidebar{position:fixed;left:-290px;top:0;bottom:0;transition:0.3s}.sidebar.open{left:0}}
 </style>
 </head>
@@ -123,26 +131,60 @@ body.dark #inputBox{background:#2f2f2f;border-color:#444}
 <div class="plan">
 <h3>⭐ PRO Monthly — ₦2,000 / month</h3>
 <p>✅ Unlimited chats ✅ Faster ✅ Images + Music</p>
-<button onclick="payNow('PRO Monthly - N2000')">Pay ₦2,000 — Bank Transfer</button>
+<button onclick="selectPlan('PRO Monthly - N2000',2000)">Choose Monthly — ₦2,000</button>
 </div>
 <div class="plan" style="border-color:#FFD700">
 <h3>👑 PRO Yearly — ₦15,000 / year (Save!)</h3>
 <p>✅ Everything in Monthly ✅ Save ₦9,000 ✅ VIP Support</p>
-<button onclick="payNow('PRO Yearly - N15000')" style="background:#FFD700;color:#111">Pay ₦15,000 — Bank Transfer</button>
+<button onclick="selectPlan('PRO Yearly - N15000',15000)" style="background:#FFD700;color:#111">Choose Yearly — ₦15,000</button>
 </div>
-<div class="payInfo" id="payInfoBox">
-<b>How to Pay:</b><br>
-1. Transfer to:<br>
+
+<div id="paySection" style="display:none">
+<h3 id="selectedPlanText" style="color:#111;margin:10px 0">Pay for PRO</h3>
+<p style="font-size:13px">Choose how you want to pay:</p>
+<div class="payMethods">
+<button id="btnOpay" class="active" onclick="showMethod('opay',this)">🟣 OPay</button>
+<button id="btnCard" onclick="showMethod('card',this)">💳 Bank Card</button>
+<button id="btnBank" onclick="showMethod('bank',this)">🏦 Bank Transfer</button>
+</div>
+
+<div id="method-opay" class="methodBox active">
+<b>🟣 Pay with OPay</b><br>
+Transfer to OPay:<br>
+<b>Name:</b> Peter Oriorowho<br>
+<b>OPay Number:</b> [PUT YOUR OPAY NUMBER] <button class="copyBtn" onclick="copyText2('[PUT YOUR OPAY NUMBER]')">Copy</button><br>
+<small>After payment, tap "I Have Paid" below.</small>
+</div>
+
+<div id="method-card" class="methodBox">
+<b>💳 Pay with Bank Card / ATM Card</b><br>
+Pay securely with your Verve, Visa or Mastercard.<br>
+<button class="cardBtn" onclick="payWithCard()">Pay with Card — Secure Checkout →</button>
+<small>You will be taken to a secure page to enter your card. Works for OPay card, GTB, Access, etc.</small>
+</div>
+
+<div id="method-bank" class="methodBox">
+<b>🏦 Pay with Bank Transfer (Any Bank)</b><br>
 <b>Bank:</b> [PUT YOUR BANK HERE]<br>
 <b>Account Name:</b> Peter Oriorowho<br>
-<b>Account Number:</b> [PUT YOUR ACCOUNT NUMBER]<br>
-2. Send receipt on WhatsApp: <b>[PUT YOUR WHATSAPP NUMBER]</b><br>
-3. I will activate your PRO in 5 minutes.
+<b>Account Number:</b> [PUT YOUR ACCOUNT NUMBER] <button class="copyBtn" onclick="copyText2('[PUT YOUR ACCOUNT NUMBER]')">Copy</button><br>
+<small>Transfer from GTB, Access, FirstBank, UBA, OPay, PalmPay — any bank works.</small>
+</div>
+
+<div class="payInfo" id="payInfoBox">
+<b>After you pay:</b><br>
+1. Tap <b>"I Have Paid"</b> below<br>
+2. Send receipt on WhatsApp<br>
+3. Peter will activate your PRO in 5 minutes.
+</div>
+<button onclick="iHavePaid()" style="width:100%;background:#10a37f;color:#fff;border:none;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:10px">✅ I Have Paid — Send Receipt</button>
 </div>
 <p style="margin-top:10px;text-align:center;font-size:12px">Free plan: 20 chats per day. PRO: Unlimited.</p>
 </div>
 </div>
 <script>
+let selectedPlan = 'PRO Monthly - N2000';
+let selectedAmount = 2000;
 let allChats = JSON.parse(localStorage.getItem('petrux_all_chats') || '[]');
 let currentChatId = localStorage.getItem('petrux_current') || null;
 let history = [];
@@ -153,15 +195,12 @@ function renderMemory(){ document.getElementById('memoryBox').innerHTML = '<b>�
 function editMemory(){ let m = prompt('What should Petrux remember about you?', localStorage.getItem('petrux_memory')); if(m!==null){ localStorage.setItem('petrux_memory', m); renderMemory(); alert('Memory saved!'); } }
 function openPay(){ document.getElementById('payModal').style.display='flex'; document.getElementById('sidebar').classList.remove('open'); }
 function closePay(){ document.getElementById('payModal').style.display='none'; }
-function payNow(plan){
-  let acc = "[PUT YOUR ACCOUNT NUMBER]";
-  try{ navigator.clipboard.writeText(acc); }catch(e){}
-  let info = document.getElementById('payInfoBox');
-  if(info){ info.style.border = "3px solid #10a37f"; info.style.background = "#e6f7f2"; info.scrollIntoView({behavior:'smooth', block:'center'}); }
-  let wa = "2340000000000";
-  let msg = encodeURIComponent("Hello Peter, I want to pay for " + plan + " on Petrux AI. I have transferred. Here is my receipt.");
-  setTimeout(()=>{ window.open("https://wa.me/" + wa + "?text=" + msg, "_blank"); }, 800);
-}
+function selectPlan(plan, amount){ selectedPlan=plan; selectedAmount=amount; document.getElementById('paySection').style.display='block'; document.getElementById('selectedPlanText').textContent = 'Pay for ' + plan + ' — ₦' + amount.toLocaleString(); document.getElementById('paySection').scrollIntoView({behavior:'smooth', block:'center'}); }
+function showMethod(method, btn){ document.querySelectorAll('.payMethods button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.methodBox').forEach(d=>d.classList.remove('active')); document.getElementById('method-'+method).classList.add('active'); }
+function copyText2(t){ navigator.clipboard.writeText(t); alert('Copied: ' + t); }
+function payWithCard(){ let link = "PUT YOUR PAYSTACK OR FLUTTERWAVE LINK HERE"; if(link.includes('PUT YOUR')){ alert('Card payment coming soon!\n\nFor now, please use OPay or Bank Transfer tab.\n\nPeter will add card link soon.'); showMethod('opay', document.getElementById('btnOpay')); } else { window.open(link, '_blank'); } }
+function iHavePaid(){ let wa = "2340000000000"; let msg = encodeURIComponent("Hello Peter, I have paid for " + selectedPlan + " on Petrux AI. Here is my receipt."); window.open("https://wa.me/" + wa + "?text=" + msg, "_blank"); }
+function payNow(plan){ selectPlan(plan, plan.includes('15000')?15000:2000); }
 if(localStorage.getItem('petrux_theme')==='dark') document.body.classList.add('dark');
 function toggleTheme(){ document.body.classList.toggle('dark'); localStorage.setItem('petrux_theme', document.body.classList.contains('dark') ? 'dark' : 'light'); }
 function setMode(m, btn){ mode=m; document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.getElementById('input').placeholder = m==='chat' ? 'Ask Petrux anything...' : m==='music' ? 'What song do you want?' : 'What image do you want?'; }
