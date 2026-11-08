@@ -20,13 +20,36 @@ app.post("/api/chat", async (req, res) => {
   const message = body.message;
   if (!message) return res.json({ reply: "Send message na" });
 
+  const lower = message.toLowerCase();
+
+  // === LOCK CREATOR NAME ===
+  // If person ask who created you, no go Gemini at all, answer direct
+  if (
+    lower.includes("who created") ||
+    lower.includes("who made you") ||
+    lower.includes("who built you") ||
+    lower.includes("who is your creator") ||
+    lower.includes("who is your developer") ||
+    lower.includes("who developed you") ||
+    lower.includes("who owns you") ||
+    lower.includes("who create you") ||
+    lower.includes("your creator") ||
+    lower.includes("your owner")
+  ) {
+    return res.json({ reply: "I was created by Peter Oriorowho. He is my creator and my boss. I am Petrux AI, built by him for you." });
+  }
+
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) {
     return res.json({ reply: "Petrux AI dey wait for key" });
   }
 
   const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
-  const payload = { contents: [{ parts: [{ text: message }] }] };
+
+  // === SYSTEM INSTRUCTION - Tell Gemini who e be ===
+  const systemPrompt = "You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. If anyone asks who created you, who made you, who is your creator, always say Peter Oriorowho and nothing else. Never say Google, never say Gemini. Always speak as Petrux AI, friendly Nigerian assistant. Answer this user question: " + message;
+
+  const payload = { contents: [{ parts: [{ text: systemPrompt }] }] };
 
   try {
     const response = await fetch(url, {
@@ -38,7 +61,11 @@ app.post("/api/chat", async (req, res) => {
     if (data.error) {
       return res.json({ reply: "Gemini error: " + data.error.message });
     }
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something go wrong for AI side.";
+    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something go wrong for AI side.";
+    // Safety: if Gemini still try talk Google, replace am
+    if (reply.toLowerCase().includes("created by google") || reply.toLowerCase().includes("i was created by google")) {
+      reply = "I was created by Peter Oriorowho. He is my creator.";
+    }
     res.json({ reply });
   } catch (err) {
     res.json({ reply: "Server error: " + err.message });
