@@ -18,7 +18,6 @@ app.use(express.static(path.join(__dirname,'public')));
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
-// YOUR BIO - STILL DEY, WE NO COMOT AM
 const PETER_BIO = `
 You are Petrux AI, created by Peter Oriorowho.
 ABOUT CREATOR - USE ONLY WHEN ASKED:
@@ -30,7 +29,7 @@ RULES: 1. No mention Peter unless user asks who created you / who are you / who 
 `;
 
 async function askAI(prompt, system){
-  let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+  let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY;
   let r = await fetch(url, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
