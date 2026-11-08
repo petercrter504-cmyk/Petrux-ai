@@ -22,8 +22,7 @@ app.post("/api/chat", async (req, res) => {
 
   const lower = message.toLowerCase();
 
-  // === LOCK CREATOR NAME ===
-  // If person ask who created you, no go Gemini at all, answer direct
+  // === LOCK CREATOR NAME - IN ENGLISH ===
   if (
     lower.includes("who created") ||
     lower.includes("who made you") ||
@@ -36,18 +35,18 @@ app.post("/api/chat", async (req, res) => {
     lower.includes("your creator") ||
     lower.includes("your owner")
   ) {
-    return res.json({ reply: "I was created by Peter Oriorowho. He is my creator and my boss. I am Petrux AI, built by him for you." });
+    return res.json({ reply: "I was created by Peter Oriorowho. He is my creator. I am Petrux AI, built by him to help you." });
   }
 
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY) {
-    return res.json({ reply: "Petrux AI dey wait for key" });
+    return res.json({ reply: "Petrux AI is waiting for key" });
   }
 
   const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" + GEMINI_KEY;
 
-  // === SYSTEM INSTRUCTION - Tell Gemini who e be ===
-  const systemPrompt = "You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. If anyone asks who created you, who made you, who is your creator, always say Peter Oriorowho and nothing else. Never say Google, never say Gemini. Always speak as Petrux AI, friendly Nigerian assistant. Answer this user question: " + message;
+  // === ENGLISH ONLY - NO PIDGIN ===
+  const systemPrompt = "You are Petrux AI. You were created by Peter Oriorowho. You are NOT created by Google. You are NOT Gemini. IMPORTANT RULE: Always answer in clear, correct, proper English. NEVER use Nigerian Pidgin. NEVER use words like 'na', 'dey', 'abeg', 'wetin', 'wey', 'make I tell you'. Use simple, clean English that anyone can understand. Be friendly, helpful and clear. If anyone asks who created you, always say Peter Oriorowho. Answer this question in proper English: " + message;
 
   const payload = { contents: [{ parts: [{ text: systemPrompt }] }] };
 
@@ -61,9 +60,8 @@ app.post("/api/chat", async (req, res) => {
     if (data.error) {
       return res.json({ reply: "Gemini error: " + data.error.message });
     }
-    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something go wrong for AI side.";
-    // Safety: if Gemini still try talk Google, replace am
-    if (reply.toLowerCase().includes("created by google") || reply.toLowerCase().includes("i was created by google")) {
+    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, something went wrong.";
+    if (reply.toLowerCase().includes("created by google")) {
       reply = "I was created by Peter Oriorowho. He is my creator.";
     }
     res.json({ reply });
