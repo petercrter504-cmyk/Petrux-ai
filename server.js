@@ -25,7 +25,7 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply: "Petrux AI dey wait for key" });
   }
 
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + GEMINI_KEY;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-lite:generateContent?key=" + GEMINI_KEY;
   const payload = { contents: [{ parts: [{ text: message }] }] };
 
   try {
