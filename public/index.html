@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#212121">
-
 <title>Petrux AI</title>
 
 <style>
@@ -31,14 +30,9 @@ color:var(--text);
 font:15px/1.55 system-ui,sans-serif
 }
 
-button,input,textarea,select{
-font:inherit
-}
+button,input,textarea,select{font:inherit}
 
-button{
-cursor:pointer;
-color:inherit
-}
+button{cursor:pointer;color:inherit}
 
 .app{
 height:100dvh;
@@ -70,9 +64,7 @@ font-weight:750;
 font-size:19px
 }
 
-.brand span{
-color:#aaa
-}
+.brand span{color:#aaa}
 
 .iconbtn{
 border:0;
@@ -82,9 +74,7 @@ padding:9px;
 color:#c7c7c7
 }
 
-.iconbtn:hover,.sidebtn:hover{
-background:#292929
-}
+.iconbtn:hover,.sidebtn:hover{background:#292929}
 
 .sidebtn{
 display:flex;
@@ -136,8 +126,7 @@ color:#c8c8c8;
 font-size:13px
 }
 
-.chatitem:hover,
-.chatitem.active{
+.chatitem:hover,.chatitem.active{
 background:#292929;
 color:white
 }
@@ -164,18 +153,9 @@ font-weight:700;
 flex-shrink:0
 }
 
-.profile-info{
-min-width:0
-}
-
-.profile-name{
-font-weight:700
-}
-
-.profile-status{
-font-size:11px;
-color:#999
-}
+.profile-info{min-width:0}
+.profile-name{font-weight:700}
+.profile-status{font-size:11px;color:#999}
 
 /* MAIN */
 
@@ -196,15 +176,8 @@ justify-content:space-between;
 padding:0 20px
 }
 
-.modelname{
-font-weight:650;
-font-size:16px
-}
-
-.status{
-font-size:12px;
-color:#aaa
-}
+.modelname{font-weight:650;font-size:16px}
+.status{font-size:12px;color:#aaa}
 
 .dot{
 display:inline-block;
@@ -215,13 +188,8 @@ background:#b28b4d;
 margin-right:5px
 }
 
-.dot.on{
-background:#10a37f
-}
-
-.mobilemenu{
-display:none
-}
+.dot.on{background:#10a37f}
+.mobilemenu{display:none}
 
 /* PAGES */
 
@@ -281,9 +249,7 @@ gap:13px;
 align-items:flex-start
 }
 
-.message.user{
-justify-content:flex-end
-}
+.message.user{justify-content:flex-end}
 
 .bubble{
 max-width:min(100%,690px);
@@ -302,9 +268,7 @@ padding:4px 0;
 line-height:1.75
 }
 
-.message.assistant .avatar{
-background:#10a37f
-}
+.message.assistant .avatar{background:#10a37f}
 
 .composerwrap{
 width:min(790px,calc(100% - 30px));
@@ -352,9 +316,7 @@ font-size:20px;
 font-weight:700
 }
 
-.round:disabled{
-opacity:.5
-}
+.round:disabled{opacity:.5}
 
 .toolsrow{
 display:flex;
@@ -385,17 +347,10 @@ width:min(790px,calc(100% - 32px));
 margin:35px auto
 }
 
-.pageinner h1{
-font-size:27px
-}
+.pageinner h1{font-size:27px}
+.muted{color:#aaa}
 
-.muted{
-color:#aaa
-}
-
-.field{
-margin:18px 0
-}
+.field{margin:18px 0}
 
 .field label{
 display:block;
@@ -403,8 +358,7 @@ font-size:13px;
 margin-bottom:8px
 }
 
-.field textarea,
-.field select{
+.field textarea,.field select{
 width:100%;
 background:#303030;
 border:1px solid #484848;
@@ -457,15 +411,16 @@ z-index:100;
 background:#000b;
 align-items:center;
 justify-content:center;
-padding:18px
+padding:18px;
+overflow-y:auto
 }
 
-.modal.show{
-display:flex
-}
+.modal.show{display:flex}
 
 .pro-card{
 width:min(440px,100%);
+max-height:95vh;
+overflow-y:auto;
 background:linear-gradient(145deg,#242438,#171725);
 border:1px solid #6550a5;
 border-radius:23px;
@@ -485,10 +440,7 @@ width:30px;
 height:30px
 }
 
-.pro-logo{
-font-size:40px;
-text-align:center
-}
+.pro-logo{font-size:40px;text-align:center}
 
 .pro-title{
 text-align:center;
@@ -497,10 +449,7 @@ font-weight:850;
 color:#b985ff
 }
 
-.pro-description{
-text-align:center;
-color:#aaa
-}
+.pro-description{text-align:center;color:#aaa}
 
 .pro-price{
 text-align:center;
@@ -509,10 +458,7 @@ font-weight:800;
 margin:15px
 }
 
-.pro-benefits{
-list-style:none;
-padding:0
-}
+.pro-benefits{list-style:none;padding:0}
 
 .pro-benefits li{
 padding:9px 0;
@@ -529,9 +475,27 @@ background:linear-gradient(100deg,#398cff,#9a55ed);
 color:white
 }
 
-.mobilebackdrop{
-display:none
+.pro-subscribe:disabled{opacity:.6;cursor:wait}
+
+.pro-email{
+width:100%;
+padding:13px;
+background:#303030;
+color:white;
+border:1px solid #555;
+border-radius:12px;
+outline:0
 }
+
+.payment-status{
+text-align:center;
+margin:12px 0;
+color:#aaa;
+font-size:13px;
+overflow-wrap:anywhere
+}
+
+.mobilebackdrop{display:none}
 
 @media(max-width:700px){
 
@@ -543,9 +507,7 @@ transform:translateX(-105%);
 box-shadow:10px 0 40px #0008
 }
 
-.sidebar.open{
-transform:translateX(0)
-}
+.sidebar.open{transform:translateX(0)}
 
 .mobilebackdrop.show{
 display:block;
@@ -555,25 +517,12 @@ background:#0008;
 z-index:19
 }
 
-.mobilemenu{
-display:inline-block
-}
+.mobilemenu{display:inline-block}
 
-.topbar{
-padding:0 12px
-}
-
-.status{
-display:none
-}
-
-.chatarea{
-padding:12px 14px 20px
-}
-
-.composerwrap{
-width:calc(100% - 20px)
-}
+.topbar{padding:0 12px}
+.status{display:none}
+.chatarea{padding:12px 14px 20px}
+.composerwrap{width:calc(100% - 20px)}
 }
 </style>
 </head>
@@ -605,7 +554,6 @@ width:calc(100% - 20px)
 
 <div class="profile">
 <div class="avatar">P</div>
-
 <div class="profile-info">
 <div class="profile-name">Petrux AI</div>
 <div class="profile-status">Created by Peter Oriorowho</div>
@@ -620,10 +568,7 @@ width:calc(100% - 20px)
 
 <div class="row">
 <button class="iconbtn mobilemenu" onclick="toggleSidebar(true)">☰</button>
-
-<div class="modelname" onclick="showPage('chat')">
-Petrux AI
-</div>
+<div class="modelname" onclick="showPage('chat')">Petrux AI</div>
 </div>
 
 <div class="status">
@@ -654,29 +599,18 @@ Petrux AI
 
 <button class="round" onclick="showPage('images')">＋</button>
 
-<textarea
-id="question"
-rows="1"
-placeholder="Message Petrux AI..."
-></textarea>
+<textarea id="question" rows="1" placeholder="Message Petrux AI..."></textarea>
 
-<button
-class="round send"
-id="sendBtn"
-onclick="sendMessage()"
->↑</button>
+<button class="round send" id="sendBtn" onclick="sendMessage()">↑</button>
 
 </div>
 
 <div class="toolsrow">
 <label>
 <input type="checkbox" id="research">
- Search the web
+Search the web
 </label>
-
-<span id="chatStatus">
-Petrux can make mistakes. Check important information.
-</span>
+<span id="chatStatus">Petrux can make mistakes. Check important information.</span>
 </div>
 
 </div>
@@ -697,22 +631,12 @@ AI-generated responses may be inaccurate. Verify important information.
 <p class="muted">Describe the image you want Petrux AI to create.</p>
 
 <div class="field">
-<textarea
-id="imagePrompt"
-rows="5"
-placeholder="A beautiful cinematic view of Lagos at sunset..."
-></textarea>
+<textarea id="imagePrompt" rows="5" placeholder="A beautiful cinematic view of Lagos at sunset..."></textarea>
 </div>
 
-<button class="primary" onclick="createImage()">
-Generate image
-</button>
+<button class="primary" onclick="createImage()">Generate image</button>
 
-<div
-class="result"
-id="imageResult"
-style="display:none"
-></div>
+<div class="result" id="imageResult" style="display:none"></div>
 
 </div>
 
@@ -729,19 +653,13 @@ style="display:none"
 
 <div class="field">
 <label>Song idea</label>
-
-<textarea
-id="songIdea"
-rows="4"
-placeholder="A motivational Afrobeats song about rising from nothing..."
-></textarea>
+<textarea id="songIdea" rows="4" placeholder="A motivational Afrobeats song about rising from nothing..."></textarea>
 </div>
 
 <div class="row">
 
 <div class="field" style="flex:1">
 <label>Genre</label>
-
 <select id="genre">
 <option>Afrobeats</option>
 <option>Afro-fusion</option>
@@ -754,7 +672,6 @@ placeholder="A motivational Afrobeats song about rising from nothing..."
 
 <div class="field" style="flex:1">
 <label>Mood</label>
-
 <select id="mood">
 <option>Confident</option>
 <option>Emotional</option>
@@ -766,15 +683,9 @@ placeholder="A motivational Afrobeats song about rising from nothing..."
 
 </div>
 
-<button class="primary" id="songBtn" onclick="writeSong()">
-Write lyrics
-</button>
+<button class="primary" id="songBtn" onclick="writeSong()">Write lyrics</button>
 
-<div
-class="result"
-id="songResult"
-style="display:none"
-></div>
+<div class="result" id="songResult" style="display:none"></div>
 
 </div>
 
@@ -790,11 +701,7 @@ style="display:none"
 <p class="muted">Speak your message or listen to Petrux read a reply.</p>
 
 <div class="field">
-<textarea
-id="voiceInput"
-rows="4"
-placeholder="Type or dictate your message..."
-></textarea>
+<textarea id="voiceInput" rows="4" placeholder="Type or dictate your message..."></textarea>
 </div>
 
 <div class="row">
@@ -803,9 +710,7 @@ placeholder="Type or dictate your message..."
 <button class="secondary" onclick="speakLast()">🔊 Read answer</button>
 </div>
 
-<div class="result" id="voiceResult">
-Your answer will appear here.
-</div>
+<div class="result" id="voiceResult">Your answer will appear here.</div>
 
 </div>
 
@@ -823,7 +728,6 @@ Your answer will appear here.
 <button class="close-modal" onclick="closePro()">✕</button>
 
 <div class="pro-logo">💎</div>
-
 <div class="pro-title">PETRUX PRO</div>
 
 <p class="pro-description">
@@ -834,6 +738,17 @@ Unlock a more powerful Petrux AI experience.
 ₦1,200 <small>/ 7 days</small>
 </div>
 
+<div class="field">
+<label for="proEmail">Your email address</label>
+<input
+class="pro-email"
+id="proEmail"
+type="email"
+placeholder="Enter your email address"
+autocomplete="email"
+>
+</div>
+
 <ul class="pro-benefits">
 <li>✨ Higher AI conversation limits</li>
 <li>🌐 Extended research features</li>
@@ -842,6 +757,8 @@ Unlock a more powerful Petrux AI experience.
 <li>🎵 Extended Song Lab features</li>
 <li>💎 Exclusive Pro experience</li>
 </ul>
+
+<div id="paymentStatus" class="payment-status"></div>
 
 <button class="pro-subscribe" onclick="subscribePro()">
 Get Petrux Pro
@@ -867,10 +784,8 @@ let currentChat = Date.now().toString();
 /* NAVIGATION */
 
 function toggleSidebar(open){
-
 $('sidebar').classList.toggle('open',open);
 $('backdrop').classList.toggle('show',open);
-
 }
 
 $('backdrop').onclick = () => toggleSidebar(false);
@@ -882,7 +797,6 @@ page.classList.toggle('active',page.id===id);
 });
 
 toggleSidebar(false);
-
 }
 
 /* CHAT HISTORY */
@@ -895,7 +809,6 @@ JSON.stringify(chats.slice(-30))
 );
 
 renderChats();
-
 }
 
 function renderChats(){
@@ -917,7 +830,6 @@ button.onclick=()=>loadChat(chat.id);
 $('chatlist').append(button);
 
 });
-
 }
 
 function newChat(){
@@ -932,7 +844,6 @@ $('chatStatus').textContent='New conversation';
 
 renderChats();
 showPage('chat');
-
 }
 
 function loadChat(id){
@@ -955,7 +866,6 @@ addMessage(message.role,message.content);
 
 renderChats();
 showPage('chat');
-
 }
 
 /* ADD MESSAGE */
@@ -965,18 +875,15 @@ function addMessage(role,text){
 $('welcome').style.display='none';
 
 const row=document.createElement('div');
-
 row.className='message '+role;
 
 const bubble=document.createElement('div');
-
 bubble.className='bubble';
 bubble.textContent=text;
 
 if(role==='assistant'){
 
 const avatar=document.createElement('div');
-
 avatar.className='avatar';
 avatar.textContent='P';
 
@@ -994,7 +901,6 @@ $('chatarea').scrollTop=
 $('chatarea').scrollHeight;
 
 return bubble;
-
 }
 
 /* SEND CHAT MESSAGE */
@@ -1016,15 +922,11 @@ content:text
 
 addMessage('user',text);
 
-const bubble=
-addMessage('assistant','Thinking...');
+const bubble=addMessage('assistant','Thinking...');
 
 busy=true;
-
 $('sendBtn').disabled=true;
-
-$('chatStatus').textContent=
-'Petrux is thinking...';
+$('chatStatus').textContent='Petrux is thinking...';
 
 try{
 
@@ -1046,16 +948,10 @@ research:$('research').checked
 const data=await response.json();
 
 if(!response.ok){
-
-throw new Error(
-data.error||'Could not connect to Petrux AI.'
-);
-
+throw new Error(data.error||'Could not connect to Petrux AI.');
 }
 
-const answer=
-data.answer||
-'Sorry, no answer was returned.';
+const answer=data.answer||'Sorry, no answer was returned.';
 
 bubble.textContent=answer;
 
@@ -1073,16 +969,9 @@ chat=>chat.id!==currentChat
 );
 
 chats.push({
-
 id:currentChat,
-
-title:
-history.find(
-message=>message.role==='user'
-)?.content.slice(0,36)||'New chat',
-
+title:history.find(message=>message.role==='user')?.content.slice(0,36)||'New chat',
 messages:[...history]
-
 });
 
 saveChats();
@@ -1091,23 +980,17 @@ saveChats();
 
 console.error(error);
 
-bubble.textContent=
-'Sorry, there was a problem: '+
-error.message;
+bubble.textContent='Sorry, there was a problem: '+error.message;
 
-$('chatStatus').textContent=
-'Connection error';
+$('chatStatus').textContent='Connection error';
 
 }finally{
 
 busy=false;
-
 $('sendBtn').disabled=false;
-
 input.focus();
 
 }
-
 }
 
 /* SONG LAB */
@@ -1117,20 +1000,15 @@ async function writeSong(){
 const idea=$('songIdea').value.trim();
 
 if(!idea){
-
 alert('Please enter a song idea.');
-
 return;
-
 }
 
 const result=$('songResult');
 const button=$('songBtn');
 
 result.style.display='block';
-
-result.textContent=
-'Petrux is writing your song...';
+result.textContent='Petrux is writing your song...';
 
 button.disabled=true;
 
@@ -1145,13 +1023,9 @@ headers:{
 },
 
 body:JSON.stringify({
-
 idea:idea,
-
 genre:$('genre').value,
-
 mood:$('mood').value
-
 })
 
 });
@@ -1159,26 +1033,20 @@ mood:$('mood').value
 const data=await response.json();
 
 if(!response.ok){
-
-throw new Error(
-data.error||'Song generation failed.'
-);
-
+throw new Error(data.error||'Song generation failed.');
 }
 
 result.textContent=data.lyrics;
 
 }catch(error){
 
-result.textContent=
-'Error: '+error.message;
+result.textContent='Error: '+error.message;
 
 }finally{
 
 button.disabled=false;
 
 }
-
 }
 
 /* IMAGE */
@@ -1188,19 +1056,14 @@ async function createImage(){
 const prompt=$('imagePrompt').value.trim();
 
 if(!prompt){
-
 alert('Please describe the image you want.');
-
 return;
-
 }
 
 const result=$('imageResult');
 
 result.style.display='block';
-
-result.textContent=
-'Checking image generation...';
+result.textContent='Checking image generation...';
 
 try{
 
@@ -1219,21 +1082,16 @@ body:JSON.stringify({prompt})
 const data=await response.json();
 
 if(!response.ok){
-
-throw new Error(data.error);
-
+throw new Error(data.error||'Image generation failed.');
 }
 
-result.textContent=
-data.message||'Image created.';
+result.textContent=data.message||'Image created.';
 
 }catch(error){
 
-result.textContent=
-'🎨 '+error.message;
+result.textContent='🎨 '+error.message;
 
 }
-
 }
 
 /* VOICE */
@@ -1243,17 +1101,13 @@ async function askVoice(){
 const text=$('voiceInput').value.trim();
 
 if(!text){
-
 alert('Please enter a message.');
-
 return;
-
 }
 
 const result=$('voiceResult');
 
-result.textContent=
-'Petrux is thinking...';
+result.textContent='Petrux is thinking...';
 
 try{
 
@@ -1274,24 +1128,17 @@ message:text
 const data=await response.json();
 
 if(!response.ok){
-
-throw new Error(
-data.error||'Could not get a response.'
-);
-
+throw new Error(data.error||'Could not get a response.');
 }
 
 lastAnswer=data.answer;
-
 result.textContent=lastAnswer;
 
 }catch(error){
 
-result.textContent=
-'Error: '+error.message;
+result.textContent='Error: '+error.message;
 
 }
-
 }
 
 function startDictation(){
@@ -1301,13 +1148,8 @@ window.SpeechRecognition||
 window.webkitSpeechRecognition;
 
 if(!Recognition){
-
-alert(
-'Voice dictation is not supported by this browser.'
-);
-
+alert('Voice dictation is not supported by this browser.');
 return;
-
 }
 
 const recognition=new Recognition();
@@ -1315,90 +1157,178 @@ const recognition=new Recognition();
 recognition.lang='en-US';
 
 recognition.onresult=function(event){
-
-$('voiceInput').value=
-event.results[0][0].transcript;
-
+$('voiceInput').value=event.results[0][0].transcript;
 };
 
 recognition.start();
-
 }
 
 function speakLast(){
 
 if(!lastAnswer){
-
 alert('There is no answer to read yet.');
-
 return;
-
 }
 
 speechSynthesis.cancel();
 
-const speech=
-new SpeechSynthesisUtterance(lastAnswer);
+const speech=new SpeechSynthesisUtterance(lastAnswer);
 
 speech.rate=1;
 
 speechSynthesis.speak(speech);
-
 }
 
-/* PRO */
+/* PRO AND PAYSTACK */
 
 function openPro(){
-
 $('proModal').classList.add('show');
-
 }
 
 function closePro(){
-
 $('proModal').classList.remove('show');
-
 }
 
-function subscribePro(){
+async function subscribePro(){
 
-alert(
-'Petrux Pro payment integration will be connected soon. No payment has been taken.'
+const email=$('proEmail').value.trim();
+const button=document.querySelector('.pro-subscribe');
+const status=$('paymentStatus');
+
+if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+
+status.textContent='Please enter a valid email address.';
+status.style.color='#ff7777';
+
+return;
+}
+
+button.disabled=true;
+button.textContent='Connecting to Paystack...';
+
+status.textContent='Preparing your secure payment...';
+status.style.color='#aaa';
+
+try{
+
+const response=await fetch('/api/paystack/initialize',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+email:email
+})
+
+});
+
+const data=await response.json();
+
+if(!response.ok){
+throw new Error(data.error||'Payment could not be started.');
+}
+
+if(!data.authorization_url){
+throw new Error('Paystack did not return a checkout link.');
+}
+
+window.location.href=data.authorization_url;
+
+}catch(error){
+
+status.textContent=error.message;
+status.style.color='#ff7777';
+
+button.disabled=false;
+button.textContent='Get Petrux Pro';
+
+}
+}
+
+/* VERIFY PAYMENT WHEN CUSTOMER RETURNS */
+
+async function verifyReturnedPayment(){
+
+const params=new URLSearchParams(window.location.search);
+
+const reference=params.get('reference');
+
+if(!reference){
+return;
+}
+
+const status=$('paymentStatus');
+
+$('proModal').classList.add('show');
+
+status.textContent='Verifying your payment...';
+status.style.color='#aaa';
+
+try{
+
+const response=await fetch('/api/paystack/verify',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+reference:reference
+})
+
+});
+
+const data=await response.json();
+
+if(!response.ok||!data.verified){
+throw new Error(data.error||'Payment could not be verified.');
+}
+
+status.textContent='Payment successful! Your Petrux Pro payment has been verified.';
+status.style.color='#10a37f';
+
+}catch(error){
+
+status.textContent=error.message;
+status.style.color='#ff7777';
+
+}finally{
+
+window.history.replaceState(
+{},
+document.title,
+window.location.pathname
 );
 
+}
 }
 
 /* AUTO RESIZE */
 
-$('question').addEventListener(
-'input',
-function(){
+$('question').addEventListener('input',function(){
 
 this.style.height='auto';
 
 this.style.height=
 Math.min(this.scrollHeight,180)+'px';
 
-}
-);
+});
 
-$('question').addEventListener(
-'keydown',
-function(event){
+$('question').addEventListener('keydown',function(event){
 
-if(
-event.key==='Enter'&&
-!event.shiftKey
-){
+if(event.key==='Enter'&&!event.shiftKey){
 
 event.preventDefault();
-
 sendMessage();
 
 }
 
-}
-);
+});
 
 /* SERVER STATUS */
 
@@ -1406,36 +1336,29 @@ async function checkStatus(){
 
 try{
 
-const response=
-await fetch('/api/status');
-
-const data=
-await response.json();
+const response=await fetch('/api/status');
+const data=await response.json();
 
 if(data.online){
 
 $('dot').classList.add('on');
-
-$('statusText').textContent=
-'Online';
+$('statusText').textContent='Online';
 
 }
 
 }catch(error){
 
 $('dot').classList.remove('on');
-
-$('statusText').textContent=
-'Offline';
+$('statusText').textContent='Offline';
 
 }
-
 }
 
 /* START */
 
 renderChats();
 checkStatus();
+verifyReturnedPayment();
 
 setInterval(checkStatus,30000);
 
