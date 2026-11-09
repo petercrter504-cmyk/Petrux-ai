@@ -1,325 +1,110 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#212121">
 <title>Petrux AI</title>
-<script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
-body{background:#fff;color:#111;display:flex;flex-direction:column;height:100vh;overflow:hidden}
-header{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee}
-.hl{display:flex;align-items:center;gap:10px}
-#menuBtn{background:none;border:none;width:42px;height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer}
-#menuBtn span{width:22px;height:2.5px;background:#111;border-radius:2px;display:block}
-header h1{font-size:19px}
-header p{font-size:12px;color:#888}
-.hr{display:flex;gap:8px;align-items:center}
-#themeBtn{background:#111;color:#fff;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold}
-#proBtn{background:#FFD700;color:#111;border:none;padding:8px 14px;border-radius:20px;cursor:pointer;font-weight:bold}
-#proBadge{background:#FFD700;color:#111;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;font-weight:bold}
-#sidebarOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
-#sidebar{position:fixed;top:0;left:-280px;width:260px;height:100%;background:#fff;z-index:1001;transition:.25s;padding:16px;display:flex;flex-direction:column}
-#sidebar.open{left:0}
-#sidebar button{width:100%;text-align:left;background:#f7f7f8;border:none;padding:12px;border-radius:10px;margin-bottom:8px;font-size:15px;cursor:pointer}
-#chat{flex:1;overflow-y:auto;padding:20px 14px;max-width:760px;width:100%;margin:0 auto}
-.welcome{text-align:center;margin-top:20px}
-.welcome h2{font-size:26px}
-.welcome p{color:#888;margin-top:8px}
-.suggest{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
-.suggest button{padding:9px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;cursor:pointer}
-.msg{max-width:90%;padding:13px 16px;border-radius:16px;margin-bottom:14px;line-height:1.6;font-size:15px;white-space:pre-wrap}
-.user{background:#10a37f;color:#fff;margin-left:auto}
-.ai{background:#f7f7f8;border:1px solid #eee;margin-right:auto}
-.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.actions button{background:#fff;border:1px solid #ddd;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px}
-#inputArea{padding:12px;max-width:760px;width:100%;margin:0 auto}
-#tabs{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
-#tabs button{padding:8px 16px;border-radius:20px;border:1px solid #ddd;background:#f0f0f0;cursor:pointer}
-#tabs button.active{background:#10a37f;color:#fff}
-#inputBox{display:flex;gap:8px;align-items:center}
-#inputWrap{flex:1;display:flex;align-items:center;background:#f0f2f5;padding:6px 6px 6px 16px;border-radius:30px;border:1px solid #e0e0e0}
-#input{flex:1;border:none;outline:none;font-size:15px;background:transparent;padding:10px 0}
-#micBtn{background:none;border:none;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
-#sendBtn{background:#00a884;color:#fff;border:none;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
-#proModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center;padding:20px}
-#proBox{background:#fff;border-radius:18px;padding:22px;max-width:380px;width:100%;text-align:center}
-#proBox h2{font-size:22px}
-#proBox ul{text-align:left;margin:14px 0;line-height:1.9;font-size:14px}
-#payBtn{background:#10a37f;color:#fff;border:none;padding:14px;width:100%;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:8px}
-#closePro{background:#eee;border:none;padding:10px;width:100%;border-radius:12px;margin-top:8px;cursor:pointer}
-body.dark{background:#212121;color:#eee}
-body.dark .ai{background:#2f2f2f;border-color:#444}
-body.dark #inputWrap{background:#2f2f2f;border-color:#444}
-body.dark #input{color:#fff}
-body.dark .suggest button{background:#2f2f2f;color:#eee;border-color:#444}
-body.dark #menuBtn span{background:#eee}
-body.dark #sidebar{background:#2f2f2f;color:#eee}
-body.dark #sidebar button{background:#444;color:#eee}
-body.dark #tabs button{background:#2f2f2f;color:#eee;border-color:#444}
-body.dark .actions button{background:#444;color:#eee;border-color:#555}
-body.dark #proBox{background:#2f2f2f;color:#eee}
-body.dark #closePro{background:#444;color:#eee}
+:root{color-scheme:dark;--bg:#212121;--side:#171717;--panel:#2f2f2f;--line:#3d3d3d;--text:#ececec;--muted:#a1a1aa;--green:#10a37f;--hover:#2a2a2a}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit}button{cursor:pointer;color:inherit}
+.app{height:100dvh;display:flex;overflow:hidden}
+.sidebar{width:260px;flex:0 0 260px;background:var(--side);display:flex;flex-direction:column;padding:12px;transition:transform .2s}
+.brandrow{display:flex;align-items:center;justify-content:space-between;padding:5px 4px 18px}
+.brand{font-weight:750;font-size:18px;letter-spacing:-.5px}.brand span{color:#b9b9b9}
+.iconbtn{border:0;background:transparent;border-radius:9px;padding:9px;color:#c7c7c7}.iconbtn:hover,.sidebtn:hover{background:#292929}
+.sidebtn{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border:0;border-radius:9px;background:transparent;text-align:left;color:#e6e6e6;font-size:14px}
+.sidebtn .ico{width:19px;text-align:center;font-size:17px}
+.sideheading{font-size:12px;color:#888;padding:24px 10px 8px}
+.chatlist{overflow:auto;flex:1}.chatitem{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:9px 11px;border:0;border-radius:8px;background:transparent;color:#c8c8c8;font-size:13px}.chatitem:hover,.chatitem.active{background:#292929;color:white}
+.profile{display:flex;align-items:center;gap:10px;border-top:1px solid #303030;padding:13px 5px 4px;margin-top:10px;font-size:13px}
+.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#356b60;color:white;font-weight:700}
+.main{min-width:0;flex:1;display:flex;flex-direction:column;position:relative}
+.topbar{height:58px;flex:0 0 58px;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.mobilemenu{display:none}.modelname{font-weight:650;font-size:16px}.modelname small{font-weight:400;color:#aaa;font-size:12px}
+.topright{display:flex;align-items:center;gap:8px}.status{font-size:11px;color:#a5a5a5}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#b28b4d;margin-right:5px}.dot.on{background:#10a37f}
+.page{display:none;flex:1;min-height:0;overflow:auto}.page.active{display:flex;flex-direction:column}
+.chatarea{flex:1;overflow:auto;padding:20px 20px 30px;scroll-behavior:smooth}
+.welcome{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.welcome h1{font-size:30px;letter-spacing:-1px;font-weight:600;margin:0 0 22px}.welcome p{color:#aaa;max-width:500px;margin:0}
+.messages{max-width:790px;margin:0 auto;display:flex;flex-direction:column;gap:25px}
+.message{display:flex;gap:13px;align-items:flex-start}.message.user{justify-content:flex-end}
+.message .bubble{max-width:min(100%,690px);white-space:pre-wrap;overflow-wrap:anywhere}
+.message.user .bubble{background:#303030;border-radius:20px;padding:11px 17px}
+.message.assistant .bubble{padding:2px 0;line-height:1.75}
+.message.assistant .avatar{background:#10a37f;flex:0 0 30px}
+.message.user .avatar{display:none}
+.sources{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}.sources a{color:#9bd9ca;font-size:12px;text-decoration:none;border:1px solid #444;border-radius:20px;padding:4px 9px}
+.composerwrap{width:min(790px,calc(100% - 30px));margin:0 auto 16px}
+.composer{background:#303030;border:1px solid #454545;border-radius:26px;padding:10px 12px;display:flex;align-items:flex-end;gap:9px;box-shadow:0 4px 22px #0002}
+.composer:focus-within{border-color:#666}
+#question{flex:1;resize:none;max-height:180px;min-height:34px;border:0;outline:0;background:transparent;color:white;padding:7px 4px;font-size:15px}
+#question::placeholder{color:#a0a0a0}
+.round{width:38px;height:38px;flex:0 0 38px;border:0;border-radius:50%;display:grid;place-items:center;background:#555;color:white}
+.round.send{background:#f4f4f4;color:#171717;font-size:20px;font-weight:700}.round:disabled{opacity:.4}
+.toolsrow{display:flex;align-items:center;justify-content:space-between;padding:8px 8px 0;color:#999;font-size:11px;gap:8px}
+.toolsrow label{display:flex;align-items:center;gap:6px}.toolsrow input{accent-color:var(--green)}
+.disclaimer{text-align:center;color:#888;font-size:11px;padding:0 10px 12px}
+.pageinner{width:min(790px,calc(100% - 32px));margin:35px auto;}.pageinner h1{font-size:27px;font-weight:600}.muted{color:#aaa}
+.field{margin:18px 0}.field label{display:block;color:#cfcfcf;font-size:13px;margin-bottom:8px}
+.field textarea,.field input,.field select{width:100%;background:#303030;border:1px solid #484848;border-radius:13px;padding:13px;color:white;outline:0}
+.primary{background:#10a37f;border:0;color:white;border-radius:12px;padding:11px 17px;font-weight:650}.secondary{background:#333;border:1px solid #555;border-radius:12px;padding:10px 15px}
+.result{margin-top:18px;padding:16px;background:#2b2b2b;border:1px solid #414141;border-radius:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.result img{max-width:100%;border-radius:10px;display:block}.result audio{width:100%;margin-top:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mobilebackdrop{display:none}
+@media(max-width:700px){.sidebar{position:fixed;z-index:20;inset:0 auto 0 0;transform:translateX(-105%);box-shadow:10px 0 40px #0008}.sidebar.open{transform:translateX(0)}.mobilebackdrop.show{display:block;position:fixed;inset:0;background:#0008;z-index:19}.mobilemenu{display:inline-block}.topbar{padding:0 12px}.chatarea{padding:12px 14px 20px}.welcome h1{font-size:25px}.composerwrap{width:calc(100% - 20px);margin-bottom:10px}.toolsrow{font-size:10px}.status{display:none}}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="hl">
-    <button id="menuBtn" onclick="openMenu()"><span></span><span></span><span></span></button>
-    <div>
-      <h1>Petrux AI <span id="proBadge" style="display:none">PRO ⭐</span></h1>
-      <p>Created by Peter Oriorowho</p>
-    </div>
+<div class="mobilebackdrop" id="backdrop" onclick="toggleSidebar(false)"></div>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+ <div class="brandrow"><div class="brand">Petrux <span>AI</span></div><button class="iconbtn" onclick="toggleSidebar(false)" aria-label="Close menu">✕</button></div>
+ <button class="sidebtn" onclick="newChat()"><span class="ico">＋</span> New chat</button>
+ <button class="sidebtn" onclick="showPage('images')"><span class="ico">▧</span> Create image</button>
+ <button class="sidebtn" onclick="showPage('songs')"><span class="ico">♫</span> Song Lab</button>
+ <button class="sidebtn" onclick="showPage('voice')"><span class="ico">◖))</span> Voice</button>
+ <div class="sideheading">Recent chats</div><div class="chatlist" id="chatlist"></div>
+ <div class="profile"><div class="avatar">P</div><div><b>Petrux AI</b><div class="muted" style="font-size:11px">Created by Peter Oriorowho</div></div></div>
+</aside>
+<main class="main">
+ <header class="topbar"><div class="row"><button class="iconbtn mobilemenu" onclick="toggleSidebar(true)">☰</button><div class="modelname" onclick="showPage('chat')">Petrux AI <small>⌄</small></div></div><div class="topright"><span class="status"><i class="dot" id="dot"></i><span id="statusText">Connecting…</span></span></div></header>
+ <section class="page active" id="chat">
+  <div class="chatarea" id="chatarea">
+   <div class="welcome" id="welcome"><h1>What can I help with?</h1><p>Ask Petrux anything. Get help with ideas, writing, learning, research and more.</p></div>
+   <div class="messages" id="messages"></div>
   </div>
-  <div class="hr">
-    <button id="proBtn" onclick="openPro()">⭐ Pro</button>
-    <button id="themeBtn" onclick="toggleTheme()">Dark</button>
+  <div class="composerwrap">
+   <div class="composer"><button class="round" title="Create image" onclick="showPage('images')">＋</button><textarea id="question" rows="1" placeholder="Message Petrux AI…" autocomplete="off"></textarea><button class="round send" id="sendBtn" onclick="sendMessage()" aria-label="Send">↑</button></div>
+   <div class="toolsrow"><label><input type="checkbox" id="research"> Search the web</label><span id="chatStatus">Petrux can make mistakes. Check important information.</span></div>
   </div>
-</header>
-
-<div id="sidebarOverlay" onclick="closeMenu()"></div>
-<div id="sidebar">
-  <button onclick="closeMenu()" style="text-align:center;width:36px;align-self:flex-end;border-radius:50%">X</button>
-  <h2>Petrux AI</h2>
-  <p style="color:#888;font-size:12px;margin:4px 0 16px">Created by Peter Oriorowho</p>
-  <button onclick="newChat()">✏️ New Chat</button>
-  <button onclick="goMode('chat')">💬 Chat</button>
-  <button onclick="goMode('music')">🎵 Music</button>
-  <button onclick="goMode('image')">🖼️ Image</button>
-  <button onclick="openPro()" style="background:#FFD700;font-weight:bold">⭐ Upgrade to PRO - ₦1,200 One-Time</button>
-  <button onclick="toggleTheme();closeMenu()">🌙 Dark / Light</button>
-  <p style="margin-top:auto;font-size:12px;color:#888">Petrux AI - v4 PRO<br>Created by Peter Oriorowho<br>Nekede, Imo State</p>
-</div>
-
-<div id="chat">
-  <div class="welcome" id="welcome">
-    <h2>What can I help with?</h2>
-    <p>Ask me anything — business, school, songs, images, coding</p>
-    <div class="suggest">
-      <button onclick="quickAsk('Explain how to start a business in Nigeria with 50k')">Start business with 50k</button>
-      <button onclick="quickAsk('Write a love song for me')">Write a love song</button>
-      <button onclick="quickAsk('Teach me how to make money online as a student in Nigeria')">Make money online</button>
-    </div>
-    <p style="margin-top:12px;font-size:13px">FREE • v4 PRO • Tap ⭐ Pro to unlock Lifetime PRO</p>
-  </div>
-</div>
-
-<div id="inputArea">
-  <div id="tabs">
-    <button id="tabChat" class="active" onclick="setMode('chat')">💬 Chat</button>
-    <button id="tabMusic" onclick="setMode('music')">🎵 Music</button>
-    <button id="tabImage" onclick="setMode('image')">🖼️ Image</button>
-  </div>
-  <div id="inputBox">
-    <div id="inputWrap">
-      <input id="input" placeholder="Ask Petrux anything...">
-      <button id="micBtn" onclick="toggleVoice()">🎤</button>
-    </div>
-    <button id="sendBtn" onclick="sendMsg()">➤</button>
-  </div>
-  <div style="font-size:12px;color:#888;text-align:center;margin-top:6px" id="voiceNote">Tap Mic to talk | v4 PRO ₦1,200 One-Time</div>
-</div>
-
-<div id="proModal">
-  <div id="proBox">
-    <h2>⭐ Petrux PRO</h2>
-    <p style="color:#888;margin-top:6px">Pay once, enjoy forever</p>
-    <h2 style="font-size:30px;margin:8px 0">₦1,200 <span style="font-size:14px;color:#888">one-time • Lifetime</span></h2>
-    <ul>
-      <li>✅ Unlimited Chat & Images</li>
-      <li>✅ Longer, smarter answers</li>
-      <li>✅ Priority - faster replies</li>
-      <li>✅ PRO ⭐ badge forever</li>
-      <li>✅ Support Peter Oriorowho</li>
-    </ul>
-    <input id="proEmail" placeholder="Enter your email" style="width:100%;padding:12px;border-radius:10px;border:1px solid #ddd;margin-bottom:8px">
-    <button id="payBtn" onclick="payPro()">Pay ₦1,200 with Paystack</button>
-    <button id="closePro" onclick="closePro()">Close</button>
-    <p style="font-size:11px;color:#888;margin-top:10px">Secure payment by Paystack • Card, Transfer, Opay, Bank</p>
-  </div>
-</div>
-
+  <div class="disclaimer">AI-generated responses may be inaccurate. Verify important information.</div>
+ </section>
+ <section class="page" id="images"><div class="pageinner"><h1>Create an image</h1><p class="muted">Describe what you want Petrux to create.</p><div class="field"><textarea id="imagePrompt" rows="4" placeholder="A beautiful cinematic view of Lagos at sunset…"></textarea></div><button class="primary" id="imageBtn" onclick="createImage()">Generate image</button><div class="result" id="imageResult" style="display:none"></div></div></section>
+ <section class="page" id="songs"><div class="pageinner"><h1>Song Lab</h1><p class="muted">Create original lyrics and music ideas.</p><div class="field"><label>Song idea</label><textarea id="songIdea" rows="4" placeholder="A motivational Afrobeats song about rising from nothing…"></textarea></div><div class="row"><div class="field" style="flex:1"><label>Genre</label><select id="genre"><option>Afrobeats</option><option>Afro-fusion</option><option>Hip-hop</option><option>Afro-R&B</option><option>Pop</option><option>Dancehall</option></select></div><div class="field" style="flex:1"><label>Mood</label><select id="mood"><option>Confident</option><option>Emotional</option><option>Romantic</option><option>Motivational</option><option>Joyful</option></select></div></div><button class="primary" id="songBtn" onclick="writeSong()">Write lyrics</button><div class="result" id="songResult" style="display:none"></div><div class="field"><label>Full song prompt (optional)</label><textarea id="musicPrompt" rows="3" placeholder="Describe the beat, instruments and vocal style…"></textarea></div><button class="secondary" id="trackBtn" onclick="makeTrack()">Generate full song</button><div class="result" id="trackResult" style="display:none"></div></div></section>
+ <section class="page" id="voice"><div class="pageinner"><h1>Voice studio</h1><p class="muted">Speak your message or listen to Petrux read a reply.</p><div class="field"><textarea id="voiceInput" rows="4" placeholder="Type or dictate your message…"></textarea></div><div class="row"><button class="primary" onclick="askVoice()">Ask Petrux</button><button class="secondary" onclick="startDictation()">🎙 Dictate</button><button class="secondary" onclick="speakLast()">Read answer aloud</button></div><div class="result" id="voiceResult">Your answer will appear here.</div></div></section>
+</main></div>
 <script>
-var PAYSTACK_LINK = "";
-var PAYSTACK_KEY = "pk_live_0005323d7c6a32424119b099aea2790c6ddb54e6";
-var PRO_AMOUNT = 120000;
-
-if(localStorage.getItem('petrux_theme')==='dark'){
-  document.body.classList.add('dark');
-  document.getElementById('themeBtn').textContent='Light';
-}
-if(localStorage.getItem('petrux_pro')==='yes'){
-  document.getElementById('proBadge').style.display='inline';
-  document.getElementById('proBtn').textContent='PRO ⭐';
-}
-
-var mode='chat', lastUserMsg='', isSpeaking=false, isListening=false, recognition=null;
-
-function openMenu(){
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebarOverlay').style.display='block';
-}
-function closeMenu(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').style.display='none';
-}
-function newChat(){
-  closeMenu();
-  document.getElementById('chat').innerHTML='<div class="welcome" id="welcome"><h2>What can I help with?</h2><p>Ask me anything</p><p style="color:#888;margin-top:8px">v4 PRO</p></div>';
-}
-function goMode(m){ closeMenu(); setMode(m); }
-function toggleTheme(){
-  var d=document.body.classList.toggle('dark');
-  localStorage.setItem('petrux_theme', d?'dark':'light');
-  document.getElementById('themeBtn').textContent=d?'Light':'Dark';
-}
-function setMode(m){
-  mode=m;
-  document.getElementById('tabChat').className='';
-  document.getElementById('tabMusic').className='';
-  document.getElementById('tabImage').className='';
-  document.getElementById('tab'+(m==='chat'?'Chat':m==='music'?'Music':'Image')).className='active';
-  document.getElementById('input').placeholder = m==='chat' ? 'Ask Petrux anything...' : m==='music' ? 'What song do you want?' : 'What image do you want?';
-}
-function openPro(){
-  closeMenu();
-  if(localStorage.getItem('petrux_pro')==='yes'){ alert('You are already PRO ⭐ Thank you!'); return; }
-  document.getElementById('proModal').style.display='flex';
-}
-function closePro(){ document.getElementById('proModal').style.display='none'; }
-function unlockPro(){
-  localStorage.setItem('petrux_pro','yes');
-  document.getElementById('proBadge').style.display='inline';
-  document.getElementById('proBtn').textContent='PRO ⭐';
-  closePro();
-  alert('Welcome to Petrux PRO ⭐! Payment successful. You now have Lifetime PRO. Thank you!');
-}
-function payPro(){
-  var email=document.getElementById('proEmail').value.trim();
-  if(!email || !email.includes('@')){ alert('Please enter your email first'); return; }
-  if(PAYSTACK_LINK && PAYSTACK_LINK.indexOf('paystack.com')>-1){
-    window.open(PAYSTACK_LINK,'_blank');
-    alert('Complete your ₦1,200 payment on Paystack, then come back.');
-    return;
-  }
-  if(!PAYSTACK_KEY || PAYSTACK_KEY==='YOUR_PAYSTACK_KEY'){
-    alert('Peter has not added his Paystack link/key yet. Please come back soon!');
-    return;
-  }
-  var handler=PaystackPop.setup({
-    key:PAYSTACK_KEY, email:email, amount:PRO_AMOUNT, currency:'NGN',
-    ref:'PETRUX-'+Date.now(),
-    callback:function(res){ unlockPro(); },
-    onClose:function(){}
-  });
-  handler.openIframe();
-}
-function toggleVoice(){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ alert('Voice not supported. Use Chrome.'); return; }
-  if(isListening && recognition){ recognition.stop(); return; }
-  recognition=new SR();
-  recognition.lang='en-NG';
-  recognition.onstart=function(){ isListening=true; document.getElementById('voiceNote').textContent='Listening... Speak now...'; };
-  recognition.onresult=function(e){ document.getElementById('input').value=e.results[0][0].transcript; sendMsg(); };
-  recognition.onend=function(){ isListening=false; document.getElementById('voiceNote').textContent='Tap Mic to talk | v4 PRO'; };
-  recognition.start();
-}
-function speakBtn(btn){
-  var box=btn.parentElement.parentElement;
-  var text=box.getAttribute('data-full')||box.innerText;
-  if(isSpeaking){ window.speechSynthesis.cancel(); isSpeaking=false; btn.textContent='Read Aloud'; return; }
-  var u=new SpeechSynthesisUtterance(text.replace(/[*#_]/g,'').slice(0,2000));
-  u.lang='en-NG';
-  u.onend=function(){ isSpeaking=false; btn.textContent='Read Aloud'; };
-  isSpeaking=true; btn.textContent='Stop';
-  window.speechSynthesis.speak(u);
-}
-function addMsg(role,text,show){
-  var w=document.getElementById('welcome'); if(w) w.remove();
-  var c=document.getElementById('chat');
-  var d=document.createElement('div');
-  d.className='msg '+role;
-  if(role==='ai'){
-    d.innerHTML=text.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
-    if(show){
-      var a=document.createElement('div'); a.className='actions';
-      var b1=document.createElement('button'); b1.textContent='📋 Copy';
-      b1.onclick=function(){ try{navigator.clipboard.writeText(this.parentElement.parentElement.getAttribute('data-full'));}catch(e){} this.textContent='Copied!'; };
-      var b2=document.createElement('button'); b2.textContent='🔊 Read Aloud'; b2.onclick=function(){ speakBtn(this); };
-      var b3=document.createElement('button'); b3.textContent='🔄 Regenerate'; b3.onclick=function(){ regenerate(); };
-      a.appendChild(b1); a.appendChild(b2); a.appendChild(b3);
-      d.appendChild(a);
-      d.setAttribute('data-full',text);
-    }
-  } else { d.textContent=text; }
-  c.appendChild(d);
-  c.scrollTop=c.scrollHeight;
-  return d;
-}
-function regenerate(){
-  if(!lastUserMsg) return;
-  var ms=document.querySelectorAll('#chat .msg.ai');
-  if(ms.length) ms[ms.length-1].remove();
-  callAI(lastUserMsg);
-}
-function quickAsk(q){ document.getElementById('input').value=q; sendMsg(); }
-function sendMsg(){
-  var i=document.getElementById('input');
-  var t=i.value.trim();
-  if(!t) return;
-  lastUserMsg=t;
-  addMsg('user',t);
-  i.value='';
-  callAI(t);
-}
-function localBrain(q){
-  var s=q.toLowerCase();
-  var pro=localStorage.getItem('petrux_pro')==='yes';
-  var tag=pro?' [PRO ⭐ Answer] ':'';
-  if(s.includes('hi')||s.includes('hello')||s.includes('hey'))
-    return tag+"Hi! I'm Petrux AI, created by Peter Oriorowho. I'm doing well, thank you! How can I help you today? You can ask me about business, school, songs, money, or images. Try asking: 'How do I start a business with 50k in Nigeria?'";
-  if(s.includes('business')||s.includes('50k'))
-    return tag+"**How to start a business in Nigeria with 50k:**\n\n1. **Pick one thing:** Pure water, data reselling, food (akara, puff puff), or thrift clothes (okrika) - don't try everything.\n2. **Buy small:** Use 30k to buy goods, keep 20k for transport and emergency.\n3. **Sell where people are:** School gate, market, church, WhatsApp status.\n4. **Save profit:** Every day, remove your profit. Don't eat your capital.\n5. **Grow slowly:** After 2 weeks, add one more product.\n\nWant me to make a full plan for one business? Tell me which one you like.";
-  if(s.includes('money')||s.includes('online'))
-    return tag+"**How to make money online as a student in Nigeria:**\n\n1. **Learn a skill (FREE):** Copywriting, graphic design on Canva, or video editing on CapCut.\n2. **Sell on WhatsApp / Fiverr:** Post your work every day.\n3. **Data reselling:** Buy cheap data and resell to classmates.\n4. **Tutoring:** Teach JAMB / WAEC students online for 5k-10k per month.\n\nStart with ONE. Which one do you want me to teach you step by step?";
-  if(s.includes('song')||s.includes('music')||s.includes('love'))
-    return tag+"**Title: My Heart For You**\n\n(Verse 1)\nFrom the first day I saw your smile,\nMy heart has been walking a thousand miles,\nJust to be close to you, my dear,\nYou make all my worries disappear.\n\n(Chorus)\nOh, my love, you are my light,\nYou make my darkness turn to bright,\nI will love you morning and night,\nForever you are my delight.\n\nWant another song? Tell me the name of the person or the style - Afrobeats, Gospel, or Love.";
-  if(s.includes('who are you')||s.includes('your name')||s.includes('who created')||s.includes('created you'))
-    return "I am Petrux AI, created by Peter Oriorowho from Nekede, Imo State. I am here to help you learn, write, sing, and build your business. Ask me anything!";
-  if(s.includes('peter')||s.includes('creator')||s.includes('created'))
-    return "Peter Oriorowho is my creator. He built Petrux AI to help students and young Nigerians learn, earn, and create. He is from Nekede, Imo State.";
-  return tag+"Great question about: '"+q+"'\n\nHere is how to think about it:\n\n1. **What is the goal?** Be clear on what you want.\n2. **Break it down:** Small steps are easier than one big step.\n3. **Start today:** Do the smallest step now, even if it is not perfect.\n4. **Ask again:** Tell me more details - for example, how much money you have, or what school you are in - and I will give you a full step-by-step plan.\n\nI am Petrux AI, created by Peter Oriorowho, and I am here to help you succeed.";
-}
-async function callAI(text){
-  var typing=addMsg('ai','Petrux is typing...');
-  try{
-    if(mode==='image'){
-      var imgUrl="https://image.pollinations.ai/prompt/"+encodeURIComponent(text)+"?nologo=true&width=512&height=512&seed="+Date.now();
-      typing.remove();
-      var m=addMsg('ai','Here is your image for: '+text,true);
-      var im=document.createElement('img');
-      im.src=imgUrl; im.style.width='100%'; im.style.borderRadius='12px'; im.style.marginTop='10px';
-      m.appendChild(im);
-      return;
-    }
-    if(mode==='music'){ typing.remove(); addMsg('ai',localBrain('song '+text),true); return; }
-    var prompt="You are Petrux AI, created by Peter Oriorowho. Friendly, helpful, simple English. "+text;
-    var controller=new AbortController();
-    setTimeout(function(){controller.abort();},8000);
-    var res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt),{signal:controller.signal});
-    if(!res.ok) throw new Error('bad');
-    var reply=await res.text();
-    if(!reply||reply.length<5) throw new Error('empty');
-    typing.remove();
-    addMsg('ai',reply,true);
-  }catch(e){
-    typing.remove();
-    addMsg('ai',localBrain(text),true);
-  }
-}
-document.getElementById('input').addEventListener('keypress',function(e){ if(e.key==='Enter') sendMsg(); });
+const $=id=>document.getElementById(id);let history=[];let busy=false;let lastAnswer='';let chats=JSON.parse(localStorage.getItem('petrux_chats')||'[]');let currentChat=Date.now().toString();
+function toggleSidebar(open){$('sidebar').classList.toggle('open',open);$('backdrop').classList.toggle('show',open)}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));toggleSidebar(false)}
+function saveChats(){localStorage.setItem('petrux_chats',JSON.stringify(chats.slice(-30)));renderChats()}
+function renderChats(){$('chatlist').innerHTML='';chats.slice().reverse().forEach(c=>{let b=document.createElement('button');b.className='chatitem'+(c.id===currentChat?' active':'');b.textContent=c.title||'New chat';b.onclick=()=>loadChat(c.id);$('chatlist').append(b)})}
+function newChat(){if(history.length){chats.push({id:currentChat,title:history.find(m=>m.role==='user')?.content.slice(0,36)||'New chat',messages:history})}history=[];currentChat=Date.now().toString();$('messages').innerHTML='';$('welcome').style.display='flex';$('chatStatus').textContent='New conversation';saveChats();showPage('chat')}
+function loadChat(id){let c=chats.find(x=>x.id===id);if(!c)return;history=c.messages||[];currentChat=id;$('messages').innerHTML='';$('welcome').style.display=history.length?'none':'flex';history.forEach(m=>addMessage(m.role,m.content));renderChats();showPage('chat')}
+function addMessage(role,text,sources=[]){$('welcome').style.display='none';let row=document.createElement('div');row.className='message '+role;let av=document.createElement('div');av.className='avatar';av.textContent='P';let bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=text;if(role==='assistant'){row.append(av,bubble)}else row.append(bubble);if(sources.length){let wrap=document.createElement('div');wrap.className='sources';sources.forEach(s=>{let a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=s.title||'Source';wrap.append(a)});bubble.append(wrap)}$('messages').append(row);$('chatarea').scrollTop=$('chatarea').scrollHeight;return bubble}
+async function sendMessage(){let input=$('question'),text=input.value.trim();if(!text||busy)return;input.value='';input.style.height='auto';history.push({role:'user',content:text});addMessage('user',text);let bubble=addMessage('assistant','Thinking…');busy=true;$('sendBtn').disabled=true;$('chatStatus').textContent='Petrux is thinking…';let answer='',sources=[],done=false;try{let r=await fetch('/api/chat/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:history,research:$('research').checked,effort:'medium'})});if(!r.ok){let e={};try{e=await r.json()}catch{}throw new Error(e.error||'Could not connect to Petrux AI')}let reader=r.body.getReader(),decoder=new TextDecoder(),buffer='';while(true){let {value,done:ended}=await reader.read();if(ended)break;buffer+=decoder.decode(value,{stream:true});let frames=buffer.split('\n\n');buffer=frames.pop();for(let frame of frames){let line=frame.split('\n').find(x=>x.startsWith('data: '));if(!line)continue;let ev=JSON.parse(line.slice(6));if(ev.type==='delta'){answer+=ev.text;bubble.textContent=answer;$('chatarea').scrollTop=$('chatarea').scrollHeight}else if(ev.type==='status')$('chatStatus').textContent=ev.message;else if(ev.type==='done'){sources=ev.sources||[];done=true}else if(ev.type==='error')throw new Error(ev.message||'AI error')}}if(!done)throw new Error('Connection ended before the answer finished');if(sources.length){let wrap=document.createElement('div');wrap.className='sources';sources.forEach(s=>{let a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=s.title||'Source';wrap.append(a)});bubble.append(wrap)}history.push({role:'assistant',content:answer});lastAnswer=answer;$('chatStatus').textContent='Ready';chats=chats.filter(c=>c.id!==currentChat);chats.push({id:currentChat,title:history.find(m=>m.role==='user')?.content.slice(0,36)||'New chat',messages:history});saveChats()}catch(e){bubble.textContent=answer?answer+'\n\n[Connection issue: '+e.message+']':'I could not get a reply: '+e.message;$('chatStatus').textContent=e.message}finally{busy=false;$('sendBtn').disabled=false}}
+$('question').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,180)+'px'});$('question').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
+async function post(url,data){let r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});let j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Request failed');return j}
+async function createImage(){let prompt=$('imagePrompt').value.trim();if(!prompt)return;let b=$('imageBtn');b.disabled=true;b.textContent='Creating…';$('imageResult').style.display='block';$('imageResult').textContent='Petrux is creating your image…';try{let r=await post('/api/images',{prompt});$('imageResult').innerHTML='';let img=document.createElement('img');img.src=r.image;img.alt='Image generated by Petrux AI';$('imageResult').append(img);let a=document.createElement('a');a.href=r.image;a.download='petrux-ai-image.png';a.textContent='Save image';a.style.display='block';a.style.marginTop='12px';$('imageResult').append(a)}catch(e){$('imageResult').textContent=e.message}finally{b.disabled=false;b.textContent='Generate image'}}
+async function writeSong(){let idea=$('songIdea').value.trim();if(!idea)return;let b=$('songBtn');b.disabled=true;b.textContent='Writing…';$('songResult').style.display='block';$('songResult').textContent='Writing your lyrics…';try{let r=await post('/api/song',{idea,genre:$('genre').value,mood:$('mood').value});$('songResult').textContent=r.lyrics;$('musicPrompt').value=$('musicPrompt').value||`${$('genre').value} song, ${$('mood').value} mood. ${idea}. Original melody and polished studio production.`}catch(e){$('songResult').textContent=e.message}finally{b.disabled=false;b.textContent='Write lyrics'}}
+async function makeTrack(){let b=$('trackBtn');b.disabled=true;b.textContent='Generating…';$('trackResult').style.display='block';$('trackResult').textContent='Connecting to music service…';try{let r=await fetch('/api/song-audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('musicPrompt').value||$('songIdea').value})});if(!r.ok){let e=await r.json().catch(()=>({}));throw new Error(e.error||'Music generation failed')}let blob=await r.blob(),url=URL.createObjectURL(blob);$('trackResult').innerHTML='';let audio=document.createElement('audio');audio.controls=true;audio.src=url;$('trackResult').append(audio)}catch(e){$('trackResult').textContent=e.message}finally{b.disabled=false;b.textContent='Generate full song'}}
+async function askVoice(){let text=$('voiceInput').value.trim();if(!text)return;$('voiceResult').textContent='Petrux is thinking…';try{let r=await post('/api/chat',{messages:[{role:'user',content:text}],effort:'medium'});lastAnswer=r.answer;$('voiceResult').textContent=r.answer}catch(e){$('voiceResult').textContent=e.message}}
+function startDictation(){let SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){$('voiceResult').textContent='Speech recognition is not supported by this browser. Try Chrome or type your message.';return}let rec=new SR();rec.lang='en-NG';rec.onresult=e=>$('voiceInput').value=Array.from(e.results).map(x=>x[0].transcript).join(' ');rec.onerror=e=>$('voiceResult').textContent='Microphone error: '+e.error;rec.start()}
+function speakLast(){if(!lastAnswer)return;if(!('speechSynthesis'in window))return;let u=new SpeechSynthesisUtterance(lastAnswer);u.lang='en-US';speechSynthesis.cancel();speechSynthesis.speak(u)}
+async function checkStatus(){try{let r=await fetch('/api/status');let s=await r.json();$('dot').classList.toggle('on',!!s.ready);$('statusText').textContent=s.ready?'Online':'API key needed'}catch{$('statusText').textContent='Server offline'}}
+renderChats();checkStatus();
 </script>
-</body>
-  </html>
+</body></html>
