@@ -1,12 +1,15 @@
 {
-"name": "petrux-ai",
-"version": "1.0.0",
-"description": "Petrux AI",
-"main": "server.js",
-"scripts": {
-"start": "node server.js"
-},
-"dependencies": {
-"express": "^4.18.2"
-}
+  "name": "petrux-ai",
+  "version": "1.0.0",
+  "description": "Petrux AI created by Peter Oriorowho",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }
