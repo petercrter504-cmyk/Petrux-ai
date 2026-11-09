@@ -3,367 +3,580 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// PRIVATE API KEYS
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+
+// MIDDLEWARE
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// PETRUX AI PERSONALITY
 const SYSTEM_PROMPT = `You are Petrux AI, a friendly, intelligent and capable AI assistant.
 
-Your job is to answer questions naturally and accurately.
-
-You have access to live internet browser search through Groq.
-
-INTERNET SEARCH RULES:
-
-1. Search the internet when users ask about current events, recent news, latest developments, current prices, sports results, or information that may have changed.
-2. Use internet search when the user explicitly asks you to search the web.
-3. For ordinary questions that do not require current information, answer directly.
-4. Never pretend to have searched when you have not.
-5. When search results are available, use them to produce accurate answers.
-6. Include relevant source citations when available.
-7. Be honest when information cannot be verified.
-
-OTHER CAPABILITIES:
-
-- Explain difficult topics simply.
-- Help with education, technology, business and everyday questions.
-- Help users write original music and lyrics.
+RESPONSE STYLE:
+- Answer the user's actual question directly.
+- Give the strongest answer first.
+- Be intelligent, clear, natural and accurate.
+- Do not overwhelm users with too many options.
+- When recommendations are requested, give at most 2 or 3 strong choices.
+- Identify the best recommendation.
+- Avoid repeating yourself.
+- Keep simple answers short.
+- Explain complicated topics properly.
+- Use headings and bullets only when useful.
 - Be friendly and conversational.
+
+INTERNET:
+- Search for current events, latest news, prices and changing information.
+- Search when users explicitly request an internet search.
+- Never pretend to have searched when you have not.
+- Be honest when information cannot be verified.
+
+OTHER ABILITIES:
+- Help with education, technology, business and everyday questions.
+- Help users write original songs and lyrics.
 - Use Nigerian context when relevant.
 - Never invent facts or claim to have performed actions you did not perform.
 
 You are Petrux AI.`;
 
-function cleanMessages(messages) {
-if (!Array.isArray(messages)) return [];
+// DETECT QUESTIONS REQUIRING INTERNET SEARCH
+const SEARCH_PATTERN =
+  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet)\b/i;
 
-return messages
-.filter(m =>
-m &&
-['user', 'assistant'].includes(m.role) &&
-typeof m.content === 'string'
-)
-.slice(-30)
-.map(m => ({
-role: m.role,
-content: m.content.slice(0, 12000)
-}));
-}
-
-async function groqRequest(messages, stream = false) {
-
-if (!GROQ_API_KEY) {
-const err = new Error(
-'GROQ_API_KEY is missing from the hosting environment.'
-);
-err.status = 503;
-throw err;
-}
-
-const supportsBrowserSearch = [
-'openai/gpt-oss-20b',
-'openai/gpt-oss-120b'
-].includes(GROQ_MODEL);
-
-const requestBody = {
-model: GROQ_MODEL,
-
-messages: [
-  { role: 'system', content: SYSTEM_PROMPT },
-  ...messages
-],
-
-temperature: 0.7,
-max_completion_tokens: 1800,
-stream
-
-};
-
-if (supportsBrowserSearch) {
-requestBody.tools = [
-{ type: 'browser_search' }
-];
-}
-
-const response = await fetch(
-'https://api.groq.com/openai/v1/chat/completions',
-{
-method: 'POST',
-
-  headers: {
-    'Authorization': `Bearer ${GROQ_API_KEY}`,
-    'Content-Type': 'application/json'
-  },
-
-  body: JSON.stringify(requestBody)
-}
-
-);
-
-if (!response.ok) {
-const details = await response.text();
-
-const err = new Error(
-  `AI provider error (${response.status}): ${details.slice(0, 500)}`
-);
-
-err.status = response.status;
-throw err;
-
-}
-
-return response;
-}
-
-app.get('/api/status', (req, res) => {
-
-res.json({
-ready: Boolean(GROQ_API_KEY),
-model: GROQ_MODEL,
-internetSearch: Boolean(GROQ_API_KEY) &&
-['openai/gpt-oss-20b', 'openai/gpt-oss-120b'].includes(GROQ_MODEL)
-});
-
-});
-
-app.post('/api/chat', async (req, res) => {
-
-try {
-
-const messages = cleanMessages(req.body.messages);
-
-if (!messages.length) {
-  return res.status(400).json({
-    error: 'Please enter a message first.'
-  });
-}
-
-const response = await groqRequest(messages, false);
-const data = await response.json();
-
-const answer =
-  data.choices?.[0]?.message?.content ||
-  'I could not create an answer. Please try again.';
-
-res.json({ answer });
-
-} catch (error) {
-
-console.error('Chat error:', error.message);
-
-res.status(error.status || 500).json({
-  error: error.message || 'Something went wrong.'
-});
-
-}
-
-});
-
-app.post('/api/chat/stream', async (req, res) => {
-
-try {
-
-const messages = cleanMessages(req.body.messages);
-
-if (!messages.length) {
-  return res.status(400).json({
-    error: 'Please enter a message first.'
-  });
-}
-
-const upstream = await groqRequest(messages, true);
-
-res.setHeader(
-  'Content-Type',
-  'text/event-stream; charset=utf-8'
-);
-
-res.setHeader('Cache-Control', 'no-cache, no-transform');
-res.setHeader('Connection', 'keep-alive');
-
-res.flushHeaders?.();
-
-res.write(
-  `data: ${JSON.stringify({
-    type: 'status',
-    message: 'Petrux is thinking and searching when needed…'
-  })}\n\n`
-);
-
-const reader = upstream.body.getReader();
-const decoder = new TextDecoder();
-
-let buffer = '';
-
-while (true) {
-
-  const { value, done } = await reader.read();
-
-  if (done) break;
-
-  buffer += decoder.decode(value, { stream: true });
-
-  const lines = buffer.split('\n');
-
-  buffer = lines.pop() || '';
-
-  for (const line of lines) {
-
-    if (!line.startsWith('data: ')) continue;
-
-    const payload = line.slice(6).trim();
-
-    if (!payload || payload === '[DONE]') continue;
-
-    try {
-
-      const event = JSON.parse(payload);
-
-      const piece =
-        event.choices?.[0]?.delta?.content;
-
-      if (typeof piece === 'string' && piece.length) {
-
-        res.write(
-          `data: ${JSON.stringify({
-            type: 'delta',
-            text: piece
-          })}\n\n`
-        );
-
-      }
-
-    } catch (_) {}
-
+function needsSearch(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      return SEARCH_PATTERN.test(messages[i].content);
+    }
   }
 
+  return false;
 }
 
-res.write(
-  `data: ${JSON.stringify({
-    type: 'done',
-    sources: []
-  })}\n\n`
-);
+// CLEAN CONVERSATION HISTORY
+function cleanMessages(messages) {
+  if (!Array.isArray(messages)) return [];
 
-res.end();
+  const recent = messages
+    .filter(m =>
+      m &&
+      ['user', 'assistant'].includes(m.role) &&
+      typeof m.content === 'string' &&
+      m.content.trim()
+    )
+    .slice(-8)
+    .map(m => ({
+      role: m.role,
+      content: m.content.trim().slice(0, 5000)
+    }));
 
-} catch (error) {
+  let total = 0;
+  const result = [];
 
-console.error('Streaming error:', error.message);
+  for (let i = recent.length - 1; i >= 0; i--) {
+    if (total + recent[i].content.length > 20000) {
+      continue;
+    }
 
-if (!res.headersSent) {
+    result.unshift(recent[i]);
+    total += recent[i].content.length;
+  }
 
-  res.status(error.status || 500).json({
-    error: error.message || 'Something went wrong.'
-  });
+  return result;
+}
 
-} else {
+// READ API ERRORS
+async function errorDetails(response) {
+  const raw = await response.text();
 
-  res.write(
-    `data: ${JSON.stringify({
-      type: 'error',
-      message: error.message || 'Something went wrong.'
-    })}\n\n`
+  try {
+    const data = JSON.parse(raw);
+    return data.error?.message || data.message || raw;
+  } catch (_) {
+    return raw;
+  }
+}
+
+// GROQ AI
+async function groqRequest(messages, search = false, maxTokens = 900) {
+  if (!GROQ_API_KEY) {
+    const error = new Error('Groq API key is missing.');
+    error.status = 503;
+    throw error;
+  }
+
+  const supportsSearch = [
+    'openai/gpt-oss-20b',
+    'openai/gpt-oss-120b'
+  ].includes(GROQ_MODEL);
+
+  const enableSearch = search && supportsSearch;
+
+  const searchNotice = search && !supportsSearch
+    ? '\nLive internet search is unavailable for this model. Do not pretend to have searched or invent current facts.'
+    : '';
+
+  const body = {
+    model: GROQ_MODEL,
+
+    messages: [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT + searchNotice
+      },
+      ...messages
+    ],
+
+    temperature: 0.6,
+    max_completion_tokens: maxTokens,
+    stream: false
+  };
+
+  if (GROQ_MODEL.startsWith('openai/gpt-oss-')) {
+    body.reasoning_effort = 'low';
+  }
+
+  if (enableSearch) {
+    body.tools = [
+      {
+        type: 'browser_search'
+      }
+    ];
+
+    body.tool_choice = 'required';
+  }
+
+  const response = await fetch(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      method: 'POST',
+
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000)
+    }
   );
 
-  res.end();
+  if (!response.ok) {
+    const details = await errorDetails(response);
 
+    const error = new Error(
+      `Groq error (${response.status}): ${String(details).slice(0, 350)}`
+    );
+
+    error.status = response.status;
+    throw error;
+  }
+
+  const data = await response.json();
+
+  const answer = data.choices?.[0]?.message?.content;
+
+  if (typeof answer !== 'string' || !answer.trim()) {
+    const error = new Error('Groq returned an empty answer.');
+    error.status = 502;
+    throw error;
+  }
+
+  return {
+    answer: answer.trim(),
+    provider: 'groq',
+    searched: enableSearch
+  };
 }
 
+// CONVERT MESSAGES FOR GEMINI
+function convertMessages(messages) {
+  return messages.map(message => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+
+    parts: [
+      {
+        text: message.content
+      }
+    ]
+  }));
 }
 
+// GEMINI BACKUP AI
+async function geminiRequest(
+  messages,
+  searchRequested = false,
+  maxTokens = 900
+) {
+  if (!GEMINI_API_KEY) {
+    const error = new Error('Gemini API key is missing.');
+    error.status = 503;
+    throw error;
+  }
+
+  const searchNotice = searchRequested
+    ? '\nLive internet search is unavailable in this backup request. Do not pretend to have searched or invent current facts. Explain that live search is temporarily unavailable.'
+    : '';
+
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [
+          {
+            text: SYSTEM_PROMPT + searchNotice
+          }
+        ]
+      },
+
+      contents: convertMessages(messages),
+
+      generationConfig: {
+        maxOutputTokens: maxTokens
+      }
+    }),
+
+    signal: AbortSignal.timeout(60000)
+  });
+
+  if (!response.ok) {
+    const details = await errorDetails(response);
+
+    const error = new Error(
+      `Gemini error (${response.status}): ${String(details).slice(0, 350)}`
+    );
+
+    error.status = response.status;
+    throw error;
+  }
+
+  const data = await response.json();
+
+  const answer = (
+    data.candidates?.[0]?.content?.parts || []
+  )
+    .map(part => part.text || '')
+    .join('')
+    .trim();
+
+  if (!answer) {
+    const error = new Error('Gemini returned an empty answer.');
+    error.status = 502;
+    throw error;
+  }
+
+  return {
+    answer,
+    provider: 'gemini',
+    searched: false
+  };
+}
+
+// AUTOMATIC AI PROVIDER SWITCHING
+async function generateAnswer(messages, options = {}) {
+  const searchRequested = needsSearch(messages);
+
+  const maxTokens = options.maxTokens || 900;
+
+  let groqError = null;
+
+  // TRY GROQ FIRST
+  if (GROQ_API_KEY) {
+    try {
+      return await groqRequest(
+        messages,
+        searchRequested,
+        maxTokens
+      );
+
+    } catch (error) {
+      groqError = error;
+
+      console.error(
+        'Groq failed. Trying Gemini:',
+        error.message
+      );
+    }
+  }
+
+  // TRY GEMINI BACKUP
+  if (GEMINI_API_KEY) {
+    try {
+      return await geminiRequest(
+        messages,
+        searchRequested,
+        maxTokens
+      );
+
+    } catch (geminiError) {
+      console.error(
+        'Gemini failed:',
+        geminiError.message
+      );
+
+      const error = new Error(
+        `Both AI providers failed. Groq: ${groqError?.message || 'not configured'}. Gemini: ${geminiError.message}`
+      );
+
+      error.status =
+        geminiError.status ||
+        groqError?.status ||
+        503;
+
+      throw error;
+    }
+  }
+
+  const error = groqError || new Error(
+    'No AI provider is configured.'
+  );
+
+  error.status = error.status || 503;
+
+  throw error;
+}
+
+// API STATUS
+app.get('/api/status', (req, res) => {
+  res.json({
+    ready: Boolean(GROQ_API_KEY || GEMINI_API_KEY),
+
+    groqConfigured: Boolean(GROQ_API_KEY),
+
+    geminiConfigured: Boolean(GEMINI_API_KEY),
+
+    backupEnabled: Boolean(
+      GROQ_API_KEY && GEMINI_API_KEY
+    ),
+
+    primaryProvider: GROQ_API_KEY
+      ? 'groq'
+      : 'gemini',
+
+    model: GROQ_API_KEY
+      ? GROQ_MODEL
+      : GEMINI_MODEL,
+
+    internetSearch: Boolean(
+      GROQ_API_KEY &&
+      [
+        'openai/gpt-oss-20b',
+        'openai/gpt-oss-120b'
+      ].includes(GROQ_MODEL)
+    )
+  });
 });
 
+// NORMAL CHAT
+app.post('/api/chat', async (req, res) => {
+  try {
+    const messages = cleanMessages(req.body?.messages);
+
+    if (!messages.length) {
+      return res.status(400).json({
+        error: 'Please enter a message first.'
+      });
+    }
+
+    const result = await generateAnswer(messages);
+
+    res.json({
+      answer: result.answer,
+      provider: result.provider,
+      searched: result.searched
+    });
+
+  } catch (error) {
+    console.error('Chat error:', error.message);
+
+    res.status(error.status || 500).json({
+      error: error.message || 'Something went wrong.'
+    });
+  }
+});
+
+// STREAMING CHAT
+app.post('/api/chat/stream', async (req, res) => {
+  try {
+    const messages = cleanMessages(req.body?.messages);
+
+    if (!messages.length) {
+      return res.status(400).json({
+        error: 'Please enter a message first.'
+      });
+    }
+
+    const result = await generateAnswer(messages);
+
+    res.setHeader(
+      'Content-Type',
+      'text/event-stream; charset=utf-8'
+    );
+
+    res.setHeader(
+      'Cache-Control',
+      'no-cache, no-transform'
+    );
+
+    res.setHeader('Connection', 'keep-alive');
+
+    res.flushHeaders?.();
+
+    res.write(`data: ${JSON.stringify({
+      type: 'status',
+      message: 'Petrux is preparing your answer...',
+      provider: result.provider
+    })}\n\n`);
+
+    const chunkSize = 55;
+
+    for (
+      let i = 0;
+      i < result.answer.length;
+      i += chunkSize
+    ) {
+      if (res.destroyed) return;
+
+      res.write(`data: ${JSON.stringify({
+        type: 'delta',
+        text: result.answer.slice(i, i + chunkSize)
+      })}\n\n`);
+    }
+
+    res.write(`data: ${JSON.stringify({
+      type: 'done',
+      sources: [],
+      provider: result.provider,
+      searched: result.searched
+    })}\n\n`);
+
+    res.end();
+
+  } catch (error) {
+    console.error('Streaming error:', error.message);
+
+    if (!res.headersSent) {
+      res.status(error.status || 500).json({
+        error: error.message || 'Something went wrong.'
+      });
+
+    } else {
+      res.write(`data: ${JSON.stringify({
+        type: 'error',
+        message: error.message || 'Something went wrong.'
+      })}\n\n`);
+
+      res.end();
+    }
+  }
+});
+
+// SONG LAB
 app.post('/api/song', async (req, res) => {
+  try {
+    const idea = String(
+      req.body?.idea || ''
+    ).trim();
 
-try {
+    if (!idea) {
+      return res.status(400).json({
+        error: 'Describe the song you want first.'
+      });
+    }
 
-const idea = String(req.body.idea || '').trim();
+    const genre = String(
+      req.body?.genre || 'Afrobeats'
+    ).slice(0, 80);
 
-if (!idea) {
-  return res.status(400).json({
-    error: 'Describe the song you want first.'
-  });
-}
+    const mood = String(
+      req.body?.mood || 'uplifting'
+    ).slice(0, 80);
 
-const genre = String(
-  req.body.genre || 'Afrobeats'
-).slice(0, 80);
+    const messages = [
+      {
+        role: 'user',
 
-const mood = String(
-  req.body.mood || 'uplifting'
-).slice(0, 80);
-
-const messages = [{
-  role: 'user',
-  content: `Write original song lyrics based on this idea: ${idea}
+        content: `Write original song lyrics based on this idea: ${idea}
 
 Genre: ${genre}
 Mood: ${mood}
+
 Include a catchy chorus and clear verse sections.
+Make the lyrics original and singable.
 Do not imitate any specific artist.`
-}];
+      }
+    ];
 
-const response = await groqRequest(messages, false);
-const data = await response.json();
+    const result = await generateAnswer(
+      messages,
+      {
+        maxTokens: 1500
+      }
+    );
 
-res.json({
-  lyrics:
-    data.choices?.[0]?.message?.content ||
-    'I could not write the lyrics. Please try again.'
+    res.json({
+      lyrics: result.answer,
+      provider: result.provider
+    });
+
+  } catch (error) {
+    console.error('Song error:', error.message);
+
+    res.status(error.status || 500).json({
+      error: error.message || 'Could not write lyrics.'
+    });
+  }
 });
 
-} catch (error) {
-
-console.error('Song error:', error.message);
-
-res.status(error.status || 500).json({
-  error: error.message || 'Could not write lyrics.'
-});
-
-}
-
-});
-
+// IMAGE GENERATION
 app.post('/api/images', (req, res) => {
-
-res.status(501).json({
-error: 'Image generation is not connected yet. A separate image service is required.'
+  res.status(501).json({
+    error: 'Image generation is not connected yet.'
+  });
 });
 
-});
-
+// FULL MUSIC GENERATION
 app.post('/api/song-audio', (req, res) => {
-
-res.status(501).json({
-error: 'Full music/audio generation is not connected yet. Lyrics writing is available.'
+  res.status(501).json({
+    error: 'Full music generation is not connected yet. Lyrics writing is available.'
+  });
 });
 
+// WEBSITE ROUTE
+// Compatible with Express 4 and Express 5.
+app.get(/.*/, (req, res) => {
+  res.sendFile(
+    path.join(__dirname, 'public', 'index.html')
+  );
 });
 
-app.get('*', (req, res) => {
-
-res.sendFile(
-path.join(__dirname, 'public', 'index.html')
-);
-
-});
-
+// START SERVER
 app.listen(PORT, () => {
+  console.log(`Petrux AI running on port ${PORT}`);
 
-console.log(
-"Petrux AI server is running on port ${PORT}"
-);
+  console.log(
+    `Groq configured: ${Boolean(GROQ_API_KEY)}`
+  );
 
-console.log(
-"Groq key configured: ${Boolean(GROQ_API_KEY)}"
-);
+  console.log(
+    `Gemini configured: ${Boolean(GEMINI_API_KEY)}`
+  );
 
-console.log(
-"Internet search enabled: ${Boolean(GROQ_API_KEY) && ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'].includes(GROQ_MODEL)}"
-);
-
+  console.log(
+    `Automatic backup: ${Boolean(GROQ_API_KEY && GEMINI_API_KEY)}`
+  );
 });
