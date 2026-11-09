@@ -337,7 +337,7 @@ Do not answer current-information questions from memory alone.
 Base current-information answers on the information retrieved.
 Do not invent search results, sources or URLs.
 If the search does not provide enough information, say so honestly.
-Include source references supplied by the search system when available.
+Use information from the live search results only for current claims.
 `;
 }
 
@@ -405,7 +405,105 @@ async function details(r) {
 }
 
 /* ================================
-   GROQ AI WITH BUILT-IN BROWSER SEARCH
+   SOURCE EXTRACTION
+================================ */
+
+function extractSources(data) {
+  const sources = [];
+  const seen = new Set();
+
+  function addSource(url, title = '') {
+    if (
+      typeof url !== 'string' ||
+      !/^https?:\/\//i.test(url.trim())
+    ) {
+      return;
+    }
+
+    const cleanUrl = url.trim();
+
+    if (seen.has(cleanUrl)) return;
+
+    seen.add(cleanUrl);
+
+    sources.push({
+      title:
+        typeof title === 'string' && title.trim()
+          ? title.trim().slice(0, 300)
+          : cleanUrl,
+      url: cleanUrl
+    });
+  }
+
+  function scan(value, depth = 0, parentKey = '') {
+    if (
+      depth > 12 ||
+      value === null ||
+      value === undefined
+    ) {
+      return;
+    }
+
+    if (typeof value === 'string') {
+      /*
+       Extract URLs from strings too. This helps catch
+       source links returned inside search metadata.
+      */
+      const urls = value.match(/https?:\/\/[^\s"'<>\\]+/g);
+
+      if (urls) {
+        urls.forEach(url => addSource(url));
+      }
+
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        scan(item, depth + 1, parentKey);
+      }
+
+      return;
+    }
+
+    if (typeof value !== 'object') {
+      return;
+    }
+
+    const url =
+      value.url ||
+      value.uri ||
+      value.link ||
+      value.href ||
+      value.source_url ||
+      value.sourceUrl ||
+      value.website;
+
+    const title =
+      value.title ||
+      value.name ||
+      value.source_title ||
+      value.sourceTitle ||
+      value.display_name ||
+      value.displayName ||
+      '';
+
+    if (url) {
+      addSource(url, title);
+    }
+
+    for (const [key, item] of Object.entries(value)) {
+      scan(item, depth + 1, key);
+    }
+  }
+
+  scan(data);
+
+  return sources.slice(0, 10);
+}
+
+/* ================================
+   GROQ AI WITH BROWSER SEARCH
 ================================ */
 
 async function groqRequest(messages, search, max, model, temperature) {
@@ -476,14 +574,8 @@ async function groqRequest(messages, search, max, model, temperature) {
 
   const d = await r.json();
 
-  /*
-     This logs the complete Groq response structure for
-     live-search requests so we can see exactly what the
-     browser search system returns in Render.
-  */
-
   if (search) {
-    console.log('GROQ SEARCH RESPONSE:');
+    console.log('GROQ LIVE SEARCH RESPONSE:');
     console.log(
       JSON.stringify(d, null, 2).slice(0, 12000)
     );
@@ -496,97 +588,18 @@ async function groqRequest(messages, search, max, model, temperature) {
     throw new Error('Groq returned an empty answer.');
   }
 
-  /*
-     Look through the Groq response for source URLs.
-     This is flexible so Petrux AI can collect sources
-     even if Groq returns them in different fields.
-  */
-
-  const sources = [];
-  const seen = new Set();
-
-  function addSource(url, title = '') {
-    if (
-      typeof url !== 'string' ||
-      !/^https?:\/\//i.test(url) ||
-      seen.has(url)
-    ) {
-      return;
-    }
-
-    seen.add(url);
-
-    sources.push({
-      title:
-        typeof title === 'string' && title.trim()
-          ? title.trim().slice(0, 300)
-          : url,
-      url
-    });
-  }
-
-  function scan(value, depth = 0) {
-    if (
-      depth > 8 ||
-      value === null ||
-      value === undefined
-    ) {
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        scan(item, depth + 1);
-      }
-
-      return;
-    }
-
-    if (typeof value !== 'object') {
-      return;
-    }
-
-    const url =
-      value.url ||
-      value.uri ||
-      value.link ||
-      value.source_url ||
-      value.sourceUrl;
-
-    const title =
-      value.title ||
-      value.name ||
-      value.source_title ||
-      value.sourceTitle ||
-      '';
-
-    if (url) {
-      addSource(url, title);
-    }
-
-    for (const [key, item] of Object.entries(value)) {
-      if (
-        [
-          'url',
-          'uri',
-          'link',
-          'source_url',
-          'sourceUrl'
-        ].includes(key)
-      ) {
-        continue;
-      }
-
-      scan(item, depth + 1);
-    }
-  }
+  const sources = search ? extractSources(d) : [];
 
   if (search) {
-    scan(d);
-
     console.log(
-      `Groq search sources found: ${sources.length}`
+      `Real live-search sources found: ${sources.length}`
     );
+
+    sources.forEach((source, index) => {
+      console.log(
+        `Source ${index + 1}: ${source.title} - ${source.url}`
+      );
+    });
   }
 
   return {
@@ -619,7 +632,9 @@ async function groq(messages, search, max = 900) {
   }
 
   console.log(`Groq request started. Model: ${GROQ_MODEL}`);
-  console.log(`Groq browser search: ${search ? 'ENABLED' : 'DISABLED'}`);
+  console.log(
+    `Groq browser search: ${search ? 'ENABLED' : 'DISABLED'}`
+  );
 
   if (!search) {
     const response = await groqRequest(
@@ -636,7 +651,7 @@ async function groq(messages, search, max = 900) {
       answer: response.answer,
       provider: 'groq',
       searched: false,
-      sources: response.sources || []
+      sources: []
     };
   }
 
@@ -790,7 +805,19 @@ async function gemini(messages, max = 900) {
    RESPONSE GENERATION
 ================================ */
 
-async function generate(messages, max = 900) {
+/*
+   forceSearch is sent from your HTML checkbox.
+   This is important: when the user checks
+   "Search the web", Petrux will now perform
+   a live search even if the question itself
+   does not contain words like "latest" or "today".
+*/
+
+async function generate(
+  messages,
+  max = 900,
+  forceSearch = false
+) {
   const lastUserMessage =
     messages.filter(m => m.role === 'user').at(-1)?.content || '';
 
@@ -804,7 +831,9 @@ async function generate(messages, max = 900) {
     };
   }
 
-  const search = SEARCH.test(lastUserMessage);
+  const search =
+    forceSearch === true ||
+    SEARCH.test(lastUserMessage);
 
   const quick = search ? null : instant(messages);
 
@@ -982,13 +1011,29 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
+    /*
+       Receive the live-search setting
+       directly from your HTML checkbox.
+    */
+
+    const research =
+      req.body.research === true;
+
     console.log(
       `Message: ${messages.at(-1)?.content.slice(0, 100)}`
     );
 
+    console.log(
+      `Web search requested: ${research}`
+    );
+
     console.log('Generating response...');
 
-    const result = await generate(messages);
+    const result = await generate(
+      messages,
+      900,
+      research
+    );
 
     console.log(`Response generated by: ${result.provider}`);
     console.log(`Web search used: ${result.searched}`);
@@ -998,7 +1043,24 @@ app.post('/api/chat', async (req, res) => {
     console.log(`Request completed in ${Date.now() - started}ms`);
     console.log('--------------------------------');
 
-    res.json(result);
+    /*
+       The response now includes:
+       answer
+       searched
+       sources: [{ title, url }]
+
+       Your new public/index.html will show
+       these real sources underneath the answer.
+    */
+
+    res.json({
+      answer: result.answer,
+      provider: result.provider,
+      searched: result.searched === true,
+      sources: Array.isArray(result.sources)
+        ? result.sources
+        : []
+    });
 
   } catch (e) {
     console.error('CHAT ERROR:', e.message);
@@ -1036,7 +1098,14 @@ app.post('/api/chat/stream', async (req, res) => {
       });
     }
 
-    const result = await generate(messages);
+    const research =
+      req.body.research === true;
+
+    const result = await generate(
+      messages,
+      900,
+      research
+    );
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -1090,24 +1159,38 @@ app.post('/api/chat/stream', async (req, res) => {
 
 app.post('/api/song', async (req, res) => {
   try {
-    const prompt = String(
-      req.body.prompt || req.body.message || ''
+    const idea = String(
+      req.body.idea ||
+      req.body.prompt ||
+      req.body.message ||
+      ''
     ).trim();
 
-    if (!prompt) {
+    if (!idea) {
       return res.status(400).json({
         error: 'Describe the song you want.'
       });
     }
 
+    const genre = String(
+      req.body.genre || ''
+    ).trim();
+
+    const mood = String(
+      req.body.mood || ''
+    ).trim();
+
     const result = await generate(
       [{
         role: 'user',
         content:
-          `Write original song lyrics based on: ${prompt}\n` +
+          `Write original song lyrics based on this idea: ${idea}\n` +
+          `Genre: ${genre || 'Choose what fits best'}\n` +
+          `Mood: ${mood || 'Choose what fits best'}\n\n` +
           'Include a title, catchy chorus, verses and natural musical flow. Do not copy existing songs.'
       }],
-      1800
+      1800,
+      false
     );
 
     res.json({
@@ -1387,13 +1470,16 @@ app.listen(PORT, () => {
   console.log(`Groq: ${GROQ_API_KEY ? 'Configured' : 'Missing'}`);
   console.log(`Gemini: ${GEMINI_API_KEY ? 'Configured' : 'Missing'}`);
   console.log(`Paystack: ${PAYSTACK_SECRET_KEY ? 'Configured' : 'Missing'}`);
+
   console.log(
     `Web Search: ${
-      GROQ_API_KEY && BROWSER_SEARCH_MODELS.includes(GROQ_MODEL)
+      GROQ_API_KEY &&
+      BROWSER_SEARCH_MODELS.includes(GROQ_MODEL)
         ? 'Groq Browser Search enabled'
         : 'Unavailable - check GROQ_MODEL and GROQ_API_KEY'
     }`
   );
+
   console.log(`AI Timeout: ${TIMEOUT / 1000} seconds`);
   console.log('Pro: ₦1,200 / 7 days');
   console.log('Creator: Peter Oriorowho');
