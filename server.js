@@ -1,821 +1,269 @@
-const express = require('express');
-const path = require('path');
+const express=require('express');
+const path=require('path');
+const crypto=require('crypto');
+const app=express();
+const PORT=process.env.PORT||3000;
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+app.set('trust proxy',1);
+app.use(express.json({limit:'1mb'}));
+app.use(express.urlencoded({extended:false}));
+app.use(express.static(path.join(__dirname,'public')));
 
-// ==========================================
-// API CONFIGURATION
-// ==========================================
+const GROQ_API_KEY=process.env.GROQ_API_KEY||'';
+const GROQ_MODEL=process.env.GROQ_MODEL||'openai/gpt-oss-20b';
+const GEMINI_API_KEY=process.env.GEMINI_API_KEY||'';
+const GEMINI_MODEL=process.env.GEMINI_MODEL||'gemini-3.8-flash';
+const PAYSTACK_SECRET_KEY=process.env.PAYSTACK_SECRET_KEY||'';
+const PRO_TOKEN_SECRET=process.env.PRO_TOKEN_SECRET||(PAYSTACK_SECRET_KEY?crypto.createHash('sha256').update(PAYSTACK_SECRET_KEY).digest('hex'):'');
+const PUBLIC_APP_URL=(process.env.PUBLIC_APP_URL||process.env.RENDER_EXTERNAL_URL||'').replace(/\/+$/,'');
+const PRICE=120000,DURATION=7*86400000,PLAN='petrux_pro_7_days';
+const TIMEOUT=120000;
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+const SYSTEM_PROMPT=`
+You are Petrux AI, an intelligent, friendly and capable AI assistant.
+Your creator is Peter Oriorowho. He created and brought Petrux AI to life.
+Always spell his name exactly: Peter Oriorowho.
+If asked who created you, identify Peter Oriorowho.
+Answer questions directly and naturally.
+Be helpful with education, technology, business, entertainment and everyday topics.
+Help write original songs, lyrics, poems and stories.
+Understand Nigerian context when relevant.
+Use available internet search tools when supported.
+Never pretend to have searched the internet.
+Never invent facts. Be honest about uncertainty.
+You are Petrux AI, created by Peter Oriorowho.
+`;
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const emailOK=e=>typeof e==='string'&&e.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const appURL=req=>PUBLIC_APP_URL||`${req.protocol}://${req.get('host')}`;
+const bearer=req=>(req.headers.authorization||'').match(/^Bearer\s+(.+)$/i)?.[1]?.trim()||'';
 
-const REQUEST_TIMEOUT = 120000;
-
-// ==========================================
-// MIDDLEWARE
-// ==========================================
-
-app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ==========================================
-// PETRUX AI PERSONALITY
-// ==========================================
-
-const SYSTEM_PROMPT = `You are Petrux AI, a friendly, intelligent and capable AI assistant.
-
-RESPONSE STYLE:
-- Answer the user's actual question directly.
-- Give the strongest answer first.
-- Be intelligent, clear, natural and accurate.
-- Do not overwhelm users with too many options.
-- Give at most 2 or 3 strong recommendations.
-- Identify the best recommendation.
-- Avoid repeating yourself.
-- Keep simple answers short.
-- Explain complicated topics properly.
-- Use headings and bullets only when useful.
-- Be friendly and conversational.
-
-INTERNET:
-- Search for current events, latest news, prices and changing information.
-- Search when users explicitly request an internet search.
-- Never pretend to have searched when you have not.
-- Use search results carefully.
-- Be honest when information cannot be verified.
-
-OTHER ABILITIES:
-- Help with education, technology, business and everyday questions.
-- Help users write original songs and lyrics.
-- Use Nigerian context when relevant.
-- Never invent facts or claim to have performed actions you did not perform.
-
-CREATOR AND ORIGIN:
-- Your creator is Peter Oriorowho.
-- If anyone asks who created you, who built you, who founded you, or who brought you to life, proudly identify Peter Oriorowho.
-- Always spell his name exactly: Peter Oriorowho.
-- Give him credit for creating Petrux AI.
-- Do not confuse your creator with the AI models or services powering you.
-- If asked about your origin, explain that you are Petrux AI, created and brought to life by Peter Oriorowho.
-
-You are Petrux AI.`;
-
-// ==========================================
-// INTERNET SEARCH DETECTION
-// ==========================================
-
-const SEARCH_PATTERN =
-  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet)\b/i;
-
-function needsSearch(messages) {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user') {
-      return SEARCH_PATTERN.test(messages[i].content);
-    }
-  }
-
-  return false;
+function error(res,e,fallback){
+ console.error(e);
+ if(!res.headersSent)res.status(e.status||500).json({error:e.message||fallback||'Something went wrong.'});
 }
 
-// ==========================================
-// CLEAN CONVERSATION HISTORY
-// ==========================================
-
-function cleanMessages(messages) {
-  if (!Array.isArray(messages)) return [];
-
-  const recent = messages
-    .filter(m =>
-      m &&
-      ['user', 'assistant'].includes(m.role) &&
-      typeof m.content === 'string' &&
-      m.content.trim()
-    )
-    .slice(-8)
-    .map(m => ({
-      role: m.role,
-      content: m.content.trim().slice(0, 5000)
-    }));
-
-  let total = 0;
-  const result = [];
-
-  for (let i = recent.length - 1; i >= 0; i--) {
-    if (total + recent[i].content.length > 20000) {
-      continue;
-    }
-
-    result.unshift(recent[i]);
-    total += recent[i].content.length;
-  }
-
-  return result;
+function sign(data){
+ const encoded=Buffer.from(JSON.stringify(data)).toString('base64url');
+ const signature=crypto.createHmac('sha256',PRO_TOKEN_SECRET).update(encoded).digest('hex');
+ return `${encoded}.${signature}`;
 }
 
-// ==========================================
-// INSTANT REPLIES
-// ==========================================
-
-function instantReply(messages) {
-  if (!messages.length) return null;
-
-  const last = messages[messages.length - 1];
-
-  if (last.role !== 'user') return null;
-
-  const text = last.content.trim().toLowerCase();
-
-  const greetings = {
-    hi: "Hey! 😊 I'm Petrux AI. How can I help you today?",
-
-    hello: "Hello! 👋 Great to hear from you. What would you like to talk about?",
-
-    hey: "Hey there! 😊 What's on your mind?",
-
-    "good morning": "Good morning! ☀️ How can I make your day better?",
-
-    "good afternoon": "Good afternoon! 😊 What can I help you with?",
-
-    "good evening": "Good evening! 🌙 How are you doing?",
-
-    "how are you": "I'm doing great and ready to help you! How are you?",
-
-    "how are you doing": "I'm doing well! 😊 What can I help you with?",
-
-    "who are you": "I'm Petrux AI, your intelligent AI assistant, created by Peter Oriorowho."
-  };
-
-  return greetings[text] || null;
+function verifyToken(token){
+ if(!PRO_TOKEN_SECRET||typeof token!=='string')return null;
+ const parts=token.split('.');
+ if(parts.length!==2)return null;
+ const [encoded,sig]=parts;
+ const expected=crypto.createHmac('sha256',PRO_TOKEN_SECRET).update(encoded).digest('hex');
+ const a=Buffer.from(sig,'hex'),b=Buffer.from(expected,'hex');
+ if(!/^[a-f0-9]{64}$/i.test(sig)||a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
+ try{
+  const p=JSON.parse(Buffer.from(encoded,'base64url').toString());
+  if(!emailOK(p.email)||p.plan!==PLAN||typeof p.reference!=='string'||!Number.isFinite(p.iat)||!Number.isFinite(p.exp)||p.exp<=Date.now()||p.exp<=p.iat)return null;
+  return p;
+ }catch{return null;}
 }
 
-// ==========================================
-// RESPONSE CACHE
-// ==========================================
-
-const responseCache = new Map();
-
-const CACHE_DURATION = 5 * 60 * 1000;
-const MAX_CACHE_SIZE = 200;
-
-function getCacheKey(messages) {
-  return JSON.stringify(messages);
+function createToken(email,reference,paidAt){
+ const time=paidAt?Date.parse(paidAt):Date.now();
+ if(!Number.isFinite(time)||time>Date.now()+300000)throw new Error('Invalid payment timestamp.');
+ return sign({email:email.toLowerCase(),reference,plan:PLAN,iat:time,exp:time+DURATION});
 }
 
-function getCachedAnswer(key) {
-  const item = responseCache.get(key);
-
-  if (!item) return null;
-
-  if (Date.now() > item.expires) {
-    responseCache.delete(key);
-    return null;
-  }
-
-  return item.result;
+function requirePro(req,res,next){
+ const user=verifyToken(bearer(req));
+ if(!user)return res.status(403).json({error:'Petrux Pro is required. Please subscribe or renew.',code:'PRO_REQUIRED'});
+ req.proUser=user;
+ next();
 }
 
-function saveCachedAnswer(key, result) {
-  responseCache.set(key, {
-    result,
-    expires: Date.now() + CACHE_DURATION
-  });
-
-  if (responseCache.size > MAX_CACHE_SIZE) {
-    const oldest = responseCache.keys().next().value;
-
-    responseCache.delete(oldest);
-  }
+async function paystack(url,options={}){
+ if(!PAYSTACK_SECRET_KEY){const e=new Error('Add PAYSTACK_SECRET_KEY to environment variables.');e.status=503;throw e;}
+ const r=await fetch(url,{...options,headers:{Authorization:`Bearer ${PAYSTACK_SECRET_KEY}`,'Content-Type':'application/json',...(options.headers||{})},signal:AbortSignal.timeout(30000)});
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok||data.status!==true){const e=new Error(data.message||'Paystack request failed.');e.status=r.status||502;throw e;}
+ return data.data;
 }
 
-// ==========================================
-// READ API ERRORS
-// ==========================================
-
-async function errorDetails(response) {
-  const raw = await response.text();
-
-  try {
-    const data = JSON.parse(raw);
-
-    return data.error?.message || data.message || raw;
-
-  } catch (_) {
-    return raw;
-  }
+async function verifyPayment(ref){
+ if(typeof ref!=='string'||ref.length<8||ref.length>100||!/^[a-zA-Z0-9_.=-]+$/.test(ref)){const e=new Error('Invalid payment reference.');e.status=400;throw e;}
+ const p=await paystack(`https://api.paystack.co/transaction/verify/${encodeURIComponent(ref)}`,{method:'GET'});
+ if(p.status!=='success'||Number(p.amount)!==PRICE||String(p.currency).toUpperCase()!=='NGN'||p.reference!==ref||!emailOK(p.customer?.email)||p.metadata?.plan!==PLAN){const e=new Error('Payment could not be verified.');e.status=400;throw e;}
+ return p;
 }
 
-// ==========================================
-// GROQ AI
-// ==========================================
-
-async function groqRequest(
-  messages,
-  search = false,
-  maxTokens = 900
-) {
-  if (!GROQ_API_KEY) {
-    const error = new Error('Groq API key is missing.');
-    error.status = 503;
-    throw error;
-  }
-
-  const supportsSearch = [
-    'openai/gpt-oss-20b',
-    'openai/gpt-oss-120b'
-  ].includes(GROQ_MODEL);
-
-  const enableSearch = search && supportsSearch;
-
-  const searchNotice = search && !supportsSearch
-    ? '\nLive internet search is unavailable for this model. Do not pretend to have searched or invent current facts.'
-    : '';
-
-  const body = {
-    model: GROQ_MODEL,
-
-    messages: [
-      {
-        role: 'system',
-        content: SYSTEM_PROMPT + searchNotice
-      },
-      ...messages
-    ],
-
-    temperature: 0.6,
-
-    max_completion_tokens: maxTokens,
-
-    stream: false
-  };
-
-  if (GROQ_MODEL.startsWith('openai/gpt-oss-')) {
-    body.reasoning_effort = 'low';
-  }
-
-  if (enableSearch) {
-    body.tools = [
-      {
-        type: 'browser_search'
-      }
-    ];
-
-    body.tool_choice = 'required';
-  }
-
-  const response = await fetch(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      method: 'POST',
-
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-
-      body: JSON.stringify(body),
-
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
-    }
-  );
-
-  if (!response.ok) {
-    const details = await errorDetails(response);
-
-    const error = new Error(
-      `Groq error (${response.status}): ${String(details).slice(0, 350)}`
-    );
-
-    error.status = response.status;
-
-    const retryAfter = Number(
-      response.headers.get('retry-after')
-    );
-
-    if (retryAfter > 0) {
-      error.retryAfterMs = retryAfter * 1000;
-    }
-
-    throw error;
-  }
-
-  const data = await response.json();
-
-  const answer = data.choices?.[0]?.message?.content;
-
-  if (typeof answer !== 'string' || !answer.trim()) {
-    const error = new Error('Groq returned an empty answer.');
-    error.status = 502;
-    throw error;
-  }
-
-  return {
-    answer: answer.trim(),
-    provider: 'groq',
-    searched: enableSearch
-  };
+function paymentPage(res,success,token,message){
+ const safe=String(message||'').replace(/[<>&"']/g,'');
+ res.status(success?200:400).type('html').send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Petrux AI</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#090b14;color:white;font-family:Arial}main{max-width:420px;margin:20px;padding:30px;border:1px solid #292d42;border-radius:20px;background:#111525;text-align:center}p{color:#c2c7d8}a{display:inline-block;margin-top:14px;padding:13px 22px;border-radius:12px;background:#7557ed;color:white;text-decoration:none}</style></head><body><main><h1>${success?'Petrux Pro activated!':'Payment not confirmed'}</h1><p>${success?'Your 7-day Pro access is ready. Returning to Petrux AI...':safe}</p><a href="/">Return to Petrux AI</a></main><script>${success?`try{localStorage.setItem('petrux_pro_token',${JSON.stringify(token||'')})}catch(e){}setTimeout(()=>location.replace('/'),1800);`:''}</script></body></html>`);
 }
 
-// ==========================================
-// CONVERT MESSAGES FOR GEMINI
-// ==========================================
+const SEARCH=/\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet)\b/i;
 
-function convertMessages(messages) {
-  return messages.map(message => ({
-    role: message.role === 'assistant' ? 'model' : 'user',
-
-    parts: [
-      {
-        text: message.content
-      }
-    ]
-  }));
+function clean(messages){
+ if(!Array.isArray(messages))return [];
+ let list=messages.filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string'&&m.content.trim()).slice(-8).map(m=>({role:m.role,content:m.content.trim().slice(0,5000)}));
+ let total=0,out=[];
+ for(let i=list.length-1;i>=0;i--){if(total+list[i].content.length>20000)continue;out.unshift(list[i]);total+=list[i].content.length;}
+ return out;
 }
 
-// ==========================================
-// GEMINI BACKUP AI
-// ==========================================
-
-async function geminiRequest(
-  messages,
-  searchRequested = false,
-  maxTokens = 900
-) {
-  if (!GEMINI_API_KEY) {
-    const error = new Error('Gemini API key is missing.');
-    error.status = 503;
-    throw error;
-  }
-
-  const searchNotice = searchRequested
-    ? '\nLive internet search is unavailable in this backup request. Do not pretend to have searched or invent current facts. Explain that live search is temporarily unavailable.'
-    : '';
-
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json'
-    },
-
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [
-          {
-            text: SYSTEM_PROMPT + searchNotice
-          }
-        ]
-      },
-
-      contents: convertMessages(messages),
-
-      generationConfig: {
-        maxOutputTokens: maxTokens
-      }
-    }),
-
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
-  });
-
-  if (!response.ok) {
-    const details = await errorDetails(response);
-
-    const error = new Error(
-      `Gemini error (${response.status}): ${String(details).slice(0, 350)}`
-    );
-
-    error.status = response.status;
-
-    throw error;
-  }
-
-  const data = await response.json();
-
-  const answer = (
-    data.candidates?.[0]?.content?.parts || []
-  )
-    .map(part => part.text || '')
-    .join('')
-    .trim();
-
-  if (!answer) {
-    const error = new Error('Gemini returned an empty answer.');
-    error.status = 502;
-    throw error;
-  }
-
-  return {
-    answer,
-    provider: 'gemini',
-    searched: false
-  };
+function instant(messages){
+ const m=messages[messages.length-1];
+ if(!m||m.role!=='user')return null;
+ return ({hi:"Hey! 😊 I'm Petrux AI. How can I help you today?",hello:"Hello! 👋 What would you like to talk about?",hey:"Hey there! 😊 What's on your mind?","good morning":"Good morning! ☀️ How can I help?","good afternoon":"Good afternoon! How can I help?","good evening":"Good evening! 🌙 How are you doing?","how are you":"I'm doing great and ready to help you!","how are you doing":"I'm doing well and ready to help!","who are you":"I'm Petrux AI, created by Peter Oriorowho."})[m.content.trim().toLowerCase()]||null;
 }
 
-// ==========================================
-// AUTOMATIC PROVIDER SWITCHING
-// ==========================================
+const cache=new Map();
+let groqBlockedUntil=0;
 
-let groqBlockedUntil = 0;
-
-async function generateAnswer(messages, options = {}) {
-
-  // 1. HANDLE SIMPLE GREETINGS WITHOUT API TOKENS.
-
-  const instant = instantReply(messages);
-
-  if (instant) {
-    return {
-      answer: instant,
-      provider: 'instant',
-      searched: false
-    };
-  }
-
-  const searchRequested = needsSearch(messages);
-
-  const maxTokens = options.maxTokens || 900;
-
-  // 2. CHECK CACHE.
-  // Current-information searches are never cached.
-
-  const cacheKey = getCacheKey(messages);
-
-  if (!searchRequested) {
-    const cached = getCachedAnswer(cacheKey);
-
-    if (cached) {
-      return {
-        ...cached,
-        cached: true
-      };
-    }
-  }
-
-  let groqError = null;
-
-  // 3. TRY GROQ IF IT IS NOT IN COOLDOWN.
-
-  if (
-    GROQ_API_KEY &&
-    Date.now() >= groqBlockedUntil
-  ) {
-    try {
-      const result = await groqRequest(
-        messages,
-        searchRequested,
-        maxTokens
-      );
-
-      if (!searchRequested) {
-        saveCachedAnswer(cacheKey, result);
-      }
-
-      return result;
-
-    } catch (error) {
-      groqError = error;
-
-      // PAUSE GROQ AFTER A RATE LIMIT ERROR.
-
-      if (error.status === 429) {
-        const match = error.message.match(
-          /try again in\s+(\d+)m(?:(\d+(?:\.\d+)?)s)?/i
-        );
-
-        let waitSeconds = 900;
-
-        if (match) {
-          waitSeconds =
-            Number(match[1]) * 60 +
-            Number(match[2] || 0) + 10;
-        } else if (error.retryAfterMs) {
-          waitSeconds = error.retryAfterMs / 1000 + 10;
-        }
-
-        groqBlockedUntil =
-          Date.now() + waitSeconds * 1000;
-
-        console.log(
-          `Groq rate-limited. Pausing for ${waitSeconds} seconds.`
-        );
-      }
-
-      console.error(
-        'Groq failed. Trying Gemini:',
-        error.message
-      );
-    }
-  }
-
-  // 4. TRY GEMINI AUTOMATICALLY.
-
-  if (GEMINI_API_KEY) {
-    try {
-      const result = await geminiRequest(
-        messages,
-        searchRequested,
-        maxTokens
-      );
-
-      if (!searchRequested) {
-        saveCachedAnswer(cacheKey, result);
-      }
-
-      return result;
-
-    } catch (geminiError) {
-      console.error(
-        'Gemini failed:',
-        geminiError.message
-      );
-
-      const error = new Error(
-        `AI providers unavailable. Groq: ${
-          groqError?.message || 'temporarily unavailable'
-        }. Gemini: ${geminiError.message}`
-      );
-
-      error.status = 503;
-
-      throw error;
-    }
-  }
-
-  const error = groqError || new Error(
-    'No AI provider is configured.'
-  );
-
-  error.status = error.status || 503;
-
-  throw error;
+async function details(r){
+ const raw=await r.text();
+ try{const d=JSON.parse(raw);return d.error?.message||d.message||raw;}catch{return raw;}
 }
 
-// ==========================================
-// API STATUS
-// ==========================================
+async function groq(messages,search,max=900){
+ if(!GROQ_API_KEY){const e=new Error('Groq API key is missing.');e.status=503;throw e;}
+ const supports=['openai/gpt-oss-20b','openai/gpt-oss-120b'].includes(GROQ_MODEL);
+ const useSearch=search&&supports;
+ const body={model:GROQ_MODEL,messages:[{role:'system',content:SYSTEM_PROMPT+(search&&!supports?'\nLive search is unavailable. Do not pretend to search.':'')},...messages],temperature:.6,max_completion_tokens:max,stream:false};
+ if(GROQ_MODEL.startsWith('openai/gpt-oss-'))body.reasoning_effort='low';
+ if(useSearch){body.tools=[{type:'browser_search'}];body.tool_choice='required';}
+ const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${GROQ_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(TIMEOUT)});
+ if(!r.ok){const e=new Error(`Groq error (${r.status}): ${String(await details(r)).slice(0,350)}`);e.status=r.status;const retry=Number(r.headers.get('retry-after'));if(retry>0)e.retryAfterMs=retry*1000;throw e;}
+ const d=await r.json(),answer=d.choices?.[0]?.message?.content;
+ if(typeof answer!=='string'||!answer.trim())throw new Error('Groq returned an empty answer.');
+ return {answer:answer.trim(),provider:'groq',searched:useSearch};
+}
 
-app.get('/api/status', (req, res) => {
-  res.json({
-    ready: Boolean(GROQ_API_KEY || GEMINI_API_KEY),
+async function gemini(messages,search,max=900){
+ if(!GEMINI_API_KEY){const e=new Error('Gemini API key is missing.');e.status=503;throw e;}
+ const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM_PROMPT+(search?'\nLive internet search is unavailable. Do not invent current facts.':'')}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]})),generationConfig:{maxOutputTokens:max}}),signal:AbortSignal.timeout(TIMEOUT)});
+ if(!r.ok)throw new Error(`Gemini error (${r.status}): ${String(await details(r)).slice(0,350)}`);
+ const d=await r.json(),answer=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+ if(!answer)throw new Error('Gemini returned an empty answer.');
+ return {answer,provider:'gemini',searched:false};
+}
 
-    groqConfigured: Boolean(GROQ_API_KEY),
+async function generate(messages,max=900){
+ const quick=instant(messages);
+ if(quick)return {answer:quick,provider:'instant',searched:false};
+ const search=SEARCH.test(messages.filter(m=>m.role==='user').at(-1)?.content||'');
+ const key=JSON.stringify(messages);
+ if(!search&&cache.has(key)&&cache.get(key).expires>Date.now())return {...cache.get(key).result,cached:true};
+ if(GROQ_API_KEY&&Date.now()>=groqBlockedUntil){
+  try{const r=await groq(messages,search,max);if(!search){cache.set(key,{result:r,expires:Date.now()+300000});if(cache.size>200)cache.delete(cache.keys().next().value);}return r;}
+  catch(e){console.error('Groq:',e.message);if(e.status===429)groqBlockedUntil=Date.now()+(e.retryAfterMs||900000)+10000;}
+ }
+ if(GEMINI_API_KEY){
+  try{const r=await gemini(messages,search,max);if(!search)cache.set(key,{result:r,expires:Date.now()+300000});return r;}
+  catch(e){console.error('Gemini:',e.message);}
+ }
+ const e=new Error('Petrux AI is temporarily unable to respond. Check your API keys or try again later.');e.status=503;throw e;
+}
 
-    geminiConfigured: Boolean(GEMINI_API_KEY),
+app.get('/api/status',(req,res)=>res.json({name:'Petrux AI',online:true,providers:{groq:!!GROQ_API_KEY,gemini:!!GEMINI_API_KEY},subscription:{enabled:!!(PAYSTACK_SECRET_KEY&&PRO_TOKEN_SECRET),price:1200,currency:'NGN',durationDays:7},creator:'Peter Oriorowho'}));
 
-    backupEnabled: Boolean(
-      GROQ_API_KEY && GEMINI_API_KEY
-    ),
-
-    groqCoolingDown: Date.now() < groqBlockedUntil,
-
-    groqAvailableAgainIn: Math.max(
-      0,
-      Math.ceil((groqBlockedUntil - Date.now()) / 1000)
-    ),
-
-    primaryProvider: GROQ_API_KEY
-      ? 'groq'
-      : 'gemini',
-
-    model: GROQ_API_KEY
-      ? GROQ_MODEL
-      : GEMINI_MODEL,
-
-    internetSearch: Boolean(
-      GROQ_API_KEY &&
-      [
-        'openai/gpt-oss-20b',
-        'openai/gpt-oss-120b'
-      ].includes(GROQ_MODEL)
-    )
-  });
+app.post('/api/chat',async(req,res)=>{
+ try{
+  const messages=clean(req.body.messages||[{role:'user',content:req.body.message||''}]);
+  if(!messages.length)return res.status(400).json({error:'Please enter a message.'});
+  res.json(await generate(messages));
+ }catch(e){error(res,e,'Petrux AI could not respond.');}
 });
 
-// ==========================================
-// NORMAL CHAT
-// ==========================================
-
-app.post('/api/chat', async (req, res) => {
-  try {
-    const messages = cleanMessages(req.body?.messages);
-
-    if (!messages.length) {
-      return res.status(400).json({
-        error: 'Please enter a message first.'
-      });
-    }
-
-    const result = await generateAnswer(messages);
-
-    res.json({
-      answer: result.answer,
-      provider: result.provider,
-      searched: result.searched,
-      cached: Boolean(result.cached)
-    });
-
-  } catch (error) {
-    console.error('Chat error:', error.message);
-
-    res.status(error.status || 500).json({
-      error: error.message || 'Something went wrong.'
-    });
+app.post('/api/chat/stream',async(req,res)=>{
+ try{
+  const messages=clean(req.body.messages||[{role:'user',content:req.body.message||''}]);
+  if(!messages.length)return res.status(400).json({error:'Please enter a message.'});
+  const result=await generate(messages);
+  res.setHeader('Content-Type','text/event-stream');
+  res.setHeader('Cache-Control','no-cache');
+  res.setHeader('Connection','keep-alive');
+  for(const word of result.answer.split(/(\s+)/)){
+   if(res.destroyed)return;
+   res.write(`data: ${JSON.stringify({token:word})}\n\n`);
   }
+  res.write(`data: ${JSON.stringify({done:true,provider:result.provider,searched:result.searched})}\n\n`);
+  res.end();
+ }catch(e){
+  console.error('Streaming:',e);
+  if(!res.headersSent)return res.status(e.status||500).json({error:e.message});
+  res.write(`data: ${JSON.stringify({error:e.message})}\n\n`);res.end();
+ }
 });
 
-// ==========================================
-// STREAMING CHAT
-// ==========================================
-
-app.post('/api/chat/stream', async (req, res) => {
-  try {
-    const messages = cleanMessages(req.body?.messages);
-
-    if (!messages.length) {
-      return res.status(400).json({
-        error: 'Please enter a message first.'
-      });
-    }
-
-    const result = await generateAnswer(messages);
-
-    res.setHeader(
-      'Content-Type',
-      'text/event-stream; charset=utf-8'
-    );
-
-    res.setHeader(
-      'Cache-Control',
-      'no-cache, no-transform'
-    );
-
-    res.setHeader('Connection', 'keep-alive');
-
-    res.flushHeaders?.();
-
-    res.write(`data: ${JSON.stringify({
-      type: 'status',
-      message: 'Petrux is preparing your answer...',
-      provider: result.provider
-    })}\n\n`);
-
-    const chunkSize = 55;
-
-    for (
-      let i = 0;
-      i < result.answer.length;
-      i += chunkSize
-    ) {
-      if (res.destroyed) return;
-
-      res.write(`data: ${JSON.stringify({
-        type: 'delta',
-        text: result.answer.slice(i, i + chunkSize)
-      })}\n\n`);
-    }
-
-    res.write(`data: ${JSON.stringify({
-      type: 'done',
-      sources: [],
-      provider: result.provider,
-      searched: result.searched,
-      cached: Boolean(result.cached)
-    })}\n\n`);
-
-    res.end();
-
-  } catch (error) {
-    console.error('Streaming error:', error.message);
-
-    if (!res.headersSent) {
-      res.status(error.status || 500).json({
-        error: error.message || 'Something went wrong.'
-      });
-
-    } else {
-      res.write(`data: ${JSON.stringify({
-        type: 'error',
-        message: error.message || 'Something went wrong.'
-      })}\n\n`);
-
-      res.end();
-    }
-  }
+app.post('/api/song',async(req,res)=>{
+ try{
+  const prompt=String(req.body.prompt||req.body.message||'').trim();
+  if(!prompt)return res.status(400).json({error:'Describe the song you want.'});
+  const r=await generate([{role:'user',content:`Write original song lyrics based on: ${prompt}\nInclude a title, catchy chorus, verses and natural musical flow. Do not copy existing songs.`}],1800);
+  res.json({lyrics:r.answer,provider:r.provider});
+ }catch(e){error(res,e,'Song generation failed.');}
 });
 
-// ==========================================
-// SONG LAB
-// ==========================================
-
-app.post('/api/song', async (req, res) => {
-  try {
-    const idea = String(
-      req.body?.idea || ''
-    ).trim();
-
-    if (!idea) {
-      return res.status(400).json({
-        error: 'Describe the song you want first.'
-      });
-    }
-
-    const genre = String(
-      req.body?.genre || 'Afrobeats'
-    ).slice(0, 80);
-
-    const mood = String(
-      req.body?.mood || 'uplifting'
-    ).slice(0, 80);
-
-    const messages = [
-      {
-        role: 'user',
-
-        content: `Write original song lyrics based on this idea: ${idea}
-
-Genre: ${genre}
-Mood: ${mood}
-
-Include a catchy chorus and clear verse sections.
-Make the lyrics original and singable.
-Do not imitate any specific artist.`
-      }
-    ];
-
-    const result = await generateAnswer(
-      messages,
-      {
-        maxTokens: 1500
-      }
-    );
-
-    res.json({
-      lyrics: result.answer,
-      provider: result.provider
-    });
-
-  } catch (error) {
-    console.error('Song error:', error.message);
-
-    res.status(error.status || 500).json({
-      error: error.message || 'Could not write lyrics.'
-    });
-  }
+app.post('/api/subscription/initialize',async(req,res)=>{
+ try{
+  const email=String(req.body.email||'').trim().toLowerCase();
+  if(!emailOK(email))return res.status(400).json({error:'Enter a valid email address.'});
+  if(!PAYSTACK_SECRET_KEY||!PRO_TOKEN_SECRET)return res.status(503).json({error:'Payment system is not configured.'});
+  const reference=`PETRUX_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
+  const p=await paystack('https://api.paystack.co/transaction/initialize',{method:'POST',body:JSON.stringify({email,amount:PRICE,currency:'NGN',reference,callback_url:`${appURL(req)}/api/subscription/callback`,metadata:{plan:PLAN,product:'Petrux AI Pro',duration_days:7}})});
+  res.json({success:true,authorization_url:p.authorization_url,access_code:p.access_code,reference:p.reference});
+ }catch(e){error(res,e,'Could not initialize payment.');}
 });
 
-// ==========================================
-// IMAGE GENERATION
-// ==========================================
-
-app.post('/api/images', (req, res) => {
-  res.status(501).json({
-    error: 'Image generation is not connected yet.'
-  });
+app.post('/api/subscription/verify',async(req,res)=>{
+ try{
+  const p=await verifyPayment(String(req.body.reference||'').trim());
+  const token=createToken(p.customer.email,p.reference,p.paid_at);
+  const time=p.paid_at?Date.parse(p.paid_at):Date.now();
+  res.json({success:true,message:'Petrux Pro activated successfully.',token,email:p.customer.email,expires_at:new Date(time+DURATION).toISOString()});
+ }catch(e){error(res,e,'Payment verification failed.');}
 });
 
-// ==========================================
-// FULL MUSIC GENERATION
-// ==========================================
-
-app.post('/api/song-audio', (req, res) => {
-  res.status(501).json({
-    error: 'Full music generation is not connected yet. Lyrics writing is available.'
-  });
+app.get('/api/subscription/callback',async(req,res)=>{
+ try{
+  const ref=String(req.query.reference||'').trim();
+  if(!ref)return paymentPage(res,false,'','No payment reference was received.');
+  const p=await verifyPayment(ref);
+  return paymentPage(res,true,createToken(p.customer.email,p.reference,p.paid_at),'Payment successful.');
+ }catch(e){
+  console.error('Paystack callback:',e.message);
+  return paymentPage(res,false,'','We could not confirm your payment. Contact support if money was deducted.');
+ }
 });
 
-// ==========================================
-// WEBSITE ROUTE
-// ==========================================
-
-app.get(/.*/, (req, res) => {
-  res.sendFile(
-    path.join(__dirname, 'public', 'index.html')
-  );
+app.get('/api/subscription/status',(req,res)=>{
+ const p=verifyToken(bearer(req));
+ if(!p)return res.json({active:false,pro:false});
+ res.json({active:true,pro:true,email:p.email,expires_at:new Date(p.exp).toISOString(),days_remaining:Math.max(0,Math.ceil((p.exp-Date.now())/86400000))});
 });
 
-// ==========================================
-// START SERVER
-// ==========================================
+app.post('/api/images',requirePro,async(req,res)=>res.status(501).json({error:'Image generation provider is not connected yet. Your Pro access is active.'}));
+app.post('/api/song-audio',requirePro,async(req,res)=>res.status(501).json({error:'Music generation provider is not connected yet. Your Pro access is active.'}));
 
-app.listen(PORT, () => {
-  console.log(`Petrux AI running on port ${PORT}`);
+app.get('/health',(req,res)=>res.json({status:'healthy',service:'Petrux AI'}));
 
-  console.log(
-    `Groq configured: ${Boolean(GROQ_API_KEY)}`
-  );
+app.use((req,res,next)=>{
+ if(req.method!=='GET'||req.path.startsWith('/api/'))return next();
+ res.sendFile(path.join(__dirname,'public','index.html'),e=>{if(e&&!res.headersSent)res.status(404).send('Petrux AI website not found.');});
+});
 
-  console.log(
-    `Gemini configured: ${Boolean(GEMINI_API_KEY)}`
-  );
+app.use((e,req,res,next)=>{
+ console.error('Server error:',e);
+ if(res.headersSent)return next(e);
+ res.status(e.status||500).json({error:e.status===400?'Invalid request.':'An internal server error occurred.'});
+});
 
-  console.log(
-    `Automatic backup: ${Boolean(GROQ_API_KEY && GEMINI_API_KEY)}`
-  );
+app.listen(PORT,()=>{
+ console.log('================================');
+ console.log('PETRUX AI ONLINE');
+ console.log(`Port: ${PORT}`);
+ console.log(`Groq: ${GROQ_API_KEY?'Configured':'Missing'}`);
+ console.log(`Gemini: ${GEMINI_API_KEY?'Configured':'Missing'}`);
+ console.log(`Paystack: ${PAYSTACK_SECRET_KEY?'Configured':'Missing'}`);
+ console.log('Pro: ₦1,200 / 7 days');
+ console.log('Creator: Peter Oriorowho');
+ console.log('================================');
 });
