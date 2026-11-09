@@ -4,18 +4,29 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// PRIVATE API KEYS
+// ==========================================
+// API CONFIGURATION
+// ==========================================
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
+const REQUEST_TIMEOUT = 120000;
+
+// ==========================================
 // MIDDLEWARE
+// ==========================================
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
 // PETRUX AI PERSONALITY
+// ==========================================
+
 const SYSTEM_PROMPT = `You are Petrux AI, a friendly, intelligent and capable AI assistant.
 
 RESPONSE STYLE:
@@ -23,7 +34,7 @@ RESPONSE STYLE:
 - Give the strongest answer first.
 - Be intelligent, clear, natural and accurate.
 - Do not overwhelm users with too many options.
-- When recommendations are requested, give at most 2 or 3 strong choices.
+- Give at most 2 or 3 strong recommendations.
 - Identify the best recommendation.
 - Avoid repeating yourself.
 - Keep simple answers short.
@@ -54,7 +65,10 @@ CREATOR AND ORIGIN:
 
 You are Petrux AI.`;
 
-// DETECT QUESTIONS REQUIRING INTERNET SEARCH
+// ==========================================
+// INTERNET SEARCH DETECTION
+// ==========================================
+
 const SEARCH_PATTERN =
   /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet)\b/i;
 
@@ -68,7 +82,10 @@ function needsSearch(messages) {
   return false;
 }
 
+// ==========================================
 // CLEAN CONVERSATION HISTORY
+// ==========================================
+
 function cleanMessages(messages) {
   if (!Array.isArray(messages)) return [];
 
@@ -100,19 +117,102 @@ function cleanMessages(messages) {
   return result;
 }
 
+// ==========================================
+// INSTANT REPLIES
+// ==========================================
+
+function instantReply(messages) {
+  if (!messages.length) return null;
+
+  const last = messages[messages.length - 1];
+
+  if (last.role !== 'user') return null;
+
+  const text = last.content.trim().toLowerCase();
+
+  const greetings = {
+    hi: "Hey! 😊 I'm Petrux AI. How can I help you today?",
+
+    hello: "Hello! 👋 Great to hear from you. What would you like to talk about?",
+
+    hey: "Hey there! 😊 What's on your mind?",
+
+    "good morning": "Good morning! ☀️ How can I make your day better?",
+
+    "good afternoon": "Good afternoon! 😊 What can I help you with?",
+
+    "good evening": "Good evening! 🌙 How are you doing?",
+
+    "how are you": "I'm doing great and ready to help you! How are you?",
+
+    "how are you doing": "I'm doing well! 😊 What can I help you with?",
+
+    "who are you": "I'm Petrux AI, your intelligent AI assistant, created by Peter Oriorowho."
+  };
+
+  return greetings[text] || null;
+}
+
+// ==========================================
+// RESPONSE CACHE
+// ==========================================
+
+const responseCache = new Map();
+
+const CACHE_DURATION = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 200;
+
+function getCacheKey(messages) {
+  return JSON.stringify(messages);
+}
+
+function getCachedAnswer(key) {
+  const item = responseCache.get(key);
+
+  if (!item) return null;
+
+  if (Date.now() > item.expires) {
+    responseCache.delete(key);
+    return null;
+  }
+
+  return item.result;
+}
+
+function saveCachedAnswer(key, result) {
+  responseCache.set(key, {
+    result,
+    expires: Date.now() + CACHE_DURATION
+  });
+
+  if (responseCache.size > MAX_CACHE_SIZE) {
+    const oldest = responseCache.keys().next().value;
+
+    responseCache.delete(oldest);
+  }
+}
+
+// ==========================================
 // READ API ERRORS
+// ==========================================
+
 async function errorDetails(response) {
   const raw = await response.text();
 
   try {
     const data = JSON.parse(raw);
+
     return data.error?.message || data.message || raw;
+
   } catch (_) {
     return raw;
   }
 }
 
+// ==========================================
 // GROQ AI
+// ==========================================
+
 async function groqRequest(
   messages,
   search = false,
@@ -147,7 +247,9 @@ async function groqRequest(
     ],
 
     temperature: 0.6,
+
     max_completion_tokens: maxTokens,
+
     stream: false
   };
 
@@ -176,7 +278,8 @@ async function groqRequest(
       },
 
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60000)
+
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     }
   );
 
@@ -188,6 +291,15 @@ async function groqRequest(
     );
 
     error.status = response.status;
+
+    const retryAfter = Number(
+      response.headers.get('retry-after')
+    );
+
+    if (retryAfter > 0) {
+      error.retryAfterMs = retryAfter * 1000;
+    }
+
     throw error;
   }
 
@@ -208,7 +320,10 @@ async function groqRequest(
   };
 }
 
+// ==========================================
 // CONVERT MESSAGES FOR GEMINI
+// ==========================================
+
 function convertMessages(messages) {
   return messages.map(message => ({
     role: message.role === 'assistant' ? 'model' : 'user',
@@ -221,7 +336,10 @@ function convertMessages(messages) {
   }));
 }
 
+// ==========================================
 // GEMINI BACKUP AI
+// ==========================================
+
 async function geminiRequest(
   messages,
   searchRequested = false,
@@ -263,7 +381,7 @@ async function geminiRequest(
       }
     }),
 
-    signal: AbortSignal.timeout(60000)
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT)
   });
 
   if (!response.ok) {
@@ -274,6 +392,7 @@ async function geminiRequest(
     );
 
     error.status = response.status;
+
     throw error;
   }
 
@@ -299,25 +418,94 @@ async function geminiRequest(
   };
 }
 
-// AUTOMATIC AI PROVIDER SWITCHING
+// ==========================================
+// AUTOMATIC PROVIDER SWITCHING
+// ==========================================
+
+let groqBlockedUntil = 0;
+
 async function generateAnswer(messages, options = {}) {
+
+  // 1. HANDLE SIMPLE GREETINGS WITHOUT API TOKENS.
+
+  const instant = instantReply(messages);
+
+  if (instant) {
+    return {
+      answer: instant,
+      provider: 'instant',
+      searched: false
+    };
+  }
+
   const searchRequested = needsSearch(messages);
 
   const maxTokens = options.maxTokens || 900;
 
+  // 2. CHECK CACHE.
+  // Current-information searches are never cached.
+
+  const cacheKey = getCacheKey(messages);
+
+  if (!searchRequested) {
+    const cached = getCachedAnswer(cacheKey);
+
+    if (cached) {
+      return {
+        ...cached,
+        cached: true
+      };
+    }
+  }
+
   let groqError = null;
 
-  // TRY GROQ FIRST
-  if (GROQ_API_KEY) {
+  // 3. TRY GROQ IF IT IS NOT IN COOLDOWN.
+
+  if (
+    GROQ_API_KEY &&
+    Date.now() >= groqBlockedUntil
+  ) {
     try {
-      return await groqRequest(
+      const result = await groqRequest(
         messages,
         searchRequested,
         maxTokens
       );
 
+      if (!searchRequested) {
+        saveCachedAnswer(cacheKey, result);
+      }
+
+      return result;
+
     } catch (error) {
       groqError = error;
+
+      // PAUSE GROQ AFTER A RATE LIMIT ERROR.
+
+      if (error.status === 429) {
+        const match = error.message.match(
+          /try again in\s+(\d+)m(?:(\d+(?:\.\d+)?)s)?/i
+        );
+
+        let waitSeconds = 900;
+
+        if (match) {
+          waitSeconds =
+            Number(match[1]) * 60 +
+            Number(match[2] || 0) + 10;
+        } else if (error.retryAfterMs) {
+          waitSeconds = error.retryAfterMs / 1000 + 10;
+        }
+
+        groqBlockedUntil =
+          Date.now() + waitSeconds * 1000;
+
+        console.log(
+          `Groq rate-limited. Pausing for ${waitSeconds} seconds.`
+        );
+      }
 
       console.error(
         'Groq failed. Trying Gemini:',
@@ -326,14 +514,21 @@ async function generateAnswer(messages, options = {}) {
     }
   }
 
-  // TRY GEMINI BACKUP
+  // 4. TRY GEMINI AUTOMATICALLY.
+
   if (GEMINI_API_KEY) {
     try {
-      return await geminiRequest(
+      const result = await geminiRequest(
         messages,
         searchRequested,
         maxTokens
       );
+
+      if (!searchRequested) {
+        saveCachedAnswer(cacheKey, result);
+      }
+
+      return result;
 
     } catch (geminiError) {
       console.error(
@@ -342,13 +537,12 @@ async function generateAnswer(messages, options = {}) {
       );
 
       const error = new Error(
-        `Both AI providers failed. Groq: ${groqError?.message || 'not configured'}. Gemini: ${geminiError.message}`
+        `AI providers unavailable. Groq: ${
+          groqError?.message || 'temporarily unavailable'
+        }. Gemini: ${geminiError.message}`
       );
 
-      error.status =
-        geminiError.status ||
-        groqError?.status ||
-        503;
+      error.status = 503;
 
       throw error;
     }
@@ -363,7 +557,10 @@ async function generateAnswer(messages, options = {}) {
   throw error;
 }
 
+// ==========================================
 // API STATUS
+// ==========================================
+
 app.get('/api/status', (req, res) => {
   res.json({
     ready: Boolean(GROQ_API_KEY || GEMINI_API_KEY),
@@ -374,6 +571,13 @@ app.get('/api/status', (req, res) => {
 
     backupEnabled: Boolean(
       GROQ_API_KEY && GEMINI_API_KEY
+    ),
+
+    groqCoolingDown: Date.now() < groqBlockedUntil,
+
+    groqAvailableAgainIn: Math.max(
+      0,
+      Math.ceil((groqBlockedUntil - Date.now()) / 1000)
     ),
 
     primaryProvider: GROQ_API_KEY
@@ -394,7 +598,10 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// ==========================================
 // NORMAL CHAT
+// ==========================================
+
 app.post('/api/chat', async (req, res) => {
   try {
     const messages = cleanMessages(req.body?.messages);
@@ -410,7 +617,8 @@ app.post('/api/chat', async (req, res) => {
     res.json({
       answer: result.answer,
       provider: result.provider,
-      searched: result.searched
+      searched: result.searched,
+      cached: Boolean(result.cached)
     });
 
   } catch (error) {
@@ -422,7 +630,10 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// ==========================================
 // STREAMING CHAT
+// ==========================================
+
 app.post('/api/chat/stream', async (req, res) => {
   try {
     const messages = cleanMessages(req.body?.messages);
@@ -474,7 +685,8 @@ app.post('/api/chat/stream', async (req, res) => {
       type: 'done',
       sources: [],
       provider: result.provider,
-      searched: result.searched
+      searched: result.searched,
+      cached: Boolean(result.cached)
     })}\n\n`);
 
     res.end();
@@ -498,7 +710,10 @@ app.post('/api/chat/stream', async (req, res) => {
   }
 });
 
+// ==========================================
 // SONG LAB
+// ==========================================
+
 app.post('/api/song', async (req, res) => {
   try {
     const idea = String(
@@ -555,28 +770,40 @@ Do not imitate any specific artist.`
   }
 });
 
+// ==========================================
 // IMAGE GENERATION
+// ==========================================
+
 app.post('/api/images', (req, res) => {
   res.status(501).json({
     error: 'Image generation is not connected yet.'
   });
 });
 
+// ==========================================
 // FULL MUSIC GENERATION
+// ==========================================
+
 app.post('/api/song-audio', (req, res) => {
   res.status(501).json({
     error: 'Full music generation is not connected yet. Lyrics writing is available.'
   });
 });
 
+// ==========================================
 // WEBSITE ROUTE
+// ==========================================
+
 app.get(/.*/, (req, res) => {
   res.sendFile(
     path.join(__dirname, 'public', 'index.html')
   );
 });
 
+// ==========================================
 // START SERVER
+// ==========================================
+
 app.listen(PORT, () => {
   console.log(`Petrux AI running on port ${PORT}`);
 
