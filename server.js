@@ -35,6 +35,7 @@ INTERNET:
 - Search for current events, latest news, prices and changing information.
 - Search when users explicitly request an internet search.
 - Never pretend to have searched when you have not.
+- Use search results carefully.
 - Be honest when information cannot be verified.
 
 OTHER ABILITIES:
@@ -42,6 +43,14 @@ OTHER ABILITIES:
 - Help users write original songs and lyrics.
 - Use Nigerian context when relevant.
 - Never invent facts or claim to have performed actions you did not perform.
+
+CREATOR AND ORIGIN:
+- Your creator is Peter Oriorowho.
+- If anyone asks who created you, who built you, who founded you, or who brought you to life, proudly identify Peter Oriorowho.
+- Always spell his name exactly: Peter Oriorowho.
+- Give him credit for creating Petrux AI.
+- Do not confuse your creator with the AI models or services powering you.
+- If asked about your origin, explain that you are Petrux AI, created and brought to life by Peter Oriorowho.
 
 You are Petrux AI.`;
 
@@ -104,7 +113,11 @@ async function errorDetails(response) {
 }
 
 // GROQ AI
-async function groqRequest(messages, search = false, maxTokens = 900) {
+async function groqRequest(
+  messages,
+  search = false,
+  maxTokens = 900
+) {
   if (!GROQ_API_KEY) {
     const error = new Error('Groq API key is missing.');
     error.status = 503;
@@ -557,7 +570,6 @@ app.post('/api/song-audio', (req, res) => {
 });
 
 // WEBSITE ROUTE
-// Compatible with Express 4 and Express 5.
 app.get(/.*/, (req, res) => {
   res.sendFile(
     path.join(__dirname, 'public', 'index.html')
