@@ -18,14 +18,15 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || '';
 
 const PRO_TOKEN_SECRET =
   process.env.PRO_TOKEN_SECRET ||
   (PAYSTACK_SECRET_KEY
-    ? crypto.createHash('sha256')
+    ? crypto
+        .createHash('sha256')
         .update(PAYSTACK_SECRET_KEY)
         .digest('hex')
     : '');
@@ -107,9 +108,9 @@ function sign(data) {
     throw new Error('Pro token secret is not configured.');
   }
 
-  const encoded = Buffer
-    .from(JSON.stringify(data))
-    .toString('base64url');
+  const encoded = Buffer.from(
+    JSON.stringify(data)
+  ).toString('base64url');
 
   const signature = crypto
     .createHmac('sha256', PRO_TOKEN_SECRET)
@@ -187,7 +188,7 @@ function createToken(email, reference, paidAt) {
 
   return sign({
     email: email.toLowerCase(),
-    reference,
+    reference: reference,
     plan: PLAN,
     iat: time,
     exp: time + DURATION
@@ -217,7 +218,6 @@ async function paystack(url, options = {}) {
     const err = new Error(
       'Add PAYSTACK_SECRET_KEY to environment variables.'
     );
-
     err.status = 503;
     throw err;
   }
@@ -238,7 +238,6 @@ async function paystack(url, options = {}) {
     const err = new Error(
       data.message || 'Paystack request failed.'
     );
-
     err.status = response.status || 502;
     throw err;
   }
@@ -260,9 +259,7 @@ async function verifyPayment(reference) {
 
   const payment = await paystack(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    {
-      method: 'GET'
-    }
+    { method: 'GET' }
   );
 
   if (
@@ -276,7 +273,6 @@ async function verifyPayment(reference) {
     const err = new Error(
       'Payment could not be verified.'
     );
-
     err.status = 400;
     throw err;
   }
@@ -367,9 +363,6 @@ ${script}
    CHAT FUNCTIONS
 ========================================= */
 
-const SEARCH_PATTERN =
-  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet)\b/i;
-
 function clean(messages) {
   if (!Array.isArray(messages)) {
     return [];
@@ -426,7 +419,9 @@ function instant(messages) {
     "who are you": "I'm Petrux AI, created by Peter Oriorowho."
   };
 
-  return replies[message.content.trim().toLowerCase()] || null;
+  return replies[
+    message.content.trim().toLowerCase()
+  ] || null;
 }
 
 /* =========================================
@@ -447,32 +442,19 @@ async function getDetails(response) {
   }
 }
 
-async function groq(messages, search, max = 900) {
+async function groq(messages, max = 900) {
   if (!GROQ_API_KEY) {
     const err = new Error('Groq API key is missing.');
     err.status = 503;
     throw err;
   }
 
-  const supportsSearch = [
-    'openai/gpt-oss-20b',
-    'openai/gpt-oss-120b'
-  ].includes(GROQ_MODEL);
-
-  const useSearch = search && supportsSearch;
-
   const body = {
     model: GROQ_MODEL,
     messages: [
       {
         role: 'system',
-        content:
-          SYSTEM_PROMPT +
-          (
-            search && !supportsSearch
-              ? '\nLive search is unavailable. Do not pretend to search.'
-              : ''
-          )
+        content: SYSTEM_PROMPT
       },
       ...messages
     ],
@@ -484,11 +466,6 @@ async function groq(messages, search, max = 900) {
   if (GROQ_MODEL.startsWith('openai/gpt-oss-')) {
     body.reasoning_effort = 'low';
   }
-
-  /*
-   * Browser search is disabled here for reliability.
-   * The AI will not claim it searched the internet.
-   */
 
   const response = await fetch(
     'https://api.groq.com/openai/v1/chat/completions',
@@ -542,7 +519,7 @@ async function groq(messages, search, max = 900) {
   };
 }
 
-async function gemini(messages, search, max = 900) {
+async function gemini(messages, max = 900) {
   if (!GEMINI_API_KEY) {
     const err = new Error('Gemini API key is missing.');
     err.status = 503;
@@ -563,13 +540,7 @@ async function gemini(messages, search, max = 900) {
       systemInstruction: {
         parts: [
           {
-            text:
-              SYSTEM_PROMPT +
-              (
-                search
-                  ? '\nLive internet search is unavailable. Do not invent current facts.'
-                  : ''
-              )
+            text: SYSTEM_PROMPT
           }
         ]
       },
@@ -598,9 +569,12 @@ async function gemini(messages, search, max = 900) {
       await getDetails(response)
     ).slice(0, 350);
 
-    throw new Error(
+    const err = new Error(
       `Gemini error (${response.status}): ${details}`
     );
+
+    err.status = response.status;
+    throw err;
   }
 
   const data = await response.json();
@@ -618,7 +592,7 @@ async function gemini(messages, search, max = 900) {
   }
 
   return {
-    answer,
+    answer: answer,
     provider: 'gemini',
     searched: false
   };
@@ -635,23 +609,9 @@ async function generate(messages, max = 900) {
     };
   }
 
-  const userMessages = messages.filter(function (message) {
-    return message.role === 'user';
-  });
-
-  const lastUserMessage =
-    userMessages.length > 0
-      ? userMessages[userMessages.length - 1].content
-      : '';
-
-  const search = SEARCH_PATTERN.test(
-    lastUserMessage
-  );
-
   const key = JSON.stringify(messages);
 
   if (
-    !search &&
     cache.has(key) &&
     cache.get(key).expires > Date.now()
   ) {
@@ -666,23 +626,15 @@ async function generate(messages, max = 900) {
     Date.now() >= groqBlockedUntil
   ) {
     try {
-      const result = await groq(
-        messages,
-        search,
-        max
-      );
+      const result = await groq(messages, max);
 
-      if (!search) {
-        cache.set(key, {
-          result,
-          expires: Date.now() + 300000
-        });
+      cache.set(key, {
+        result: result,
+        expires: Date.now() + 300000
+      });
 
-        if (cache.size > 200) {
-          cache.delete(
-            cache.keys().next().value
-          );
-        }
+      if (cache.size > 200) {
+        cache.delete(cache.keys().next().value);
       }
 
       return result;
@@ -700,18 +652,12 @@ async function generate(messages, max = 900) {
 
   if (GEMINI_API_KEY) {
     try {
-      const result = await gemini(
-        messages,
-        search,
-        max
-      );
+      const result = await gemini(messages, max);
 
-      if (!search) {
-        cache.set(key, {
-          result,
-          expires: Date.now() + 300000
-        });
-      }
+      cache.set(key, {
+        result: result,
+        expires: Date.now() + 300000
+      });
 
       return result;
     } catch (err) {
@@ -784,6 +730,10 @@ app.post('/api/chat', async function (req, res) {
     );
   }
 });
+
+/* =========================================
+   STREAMING CHAT
+========================================= */
 
 app.post(
   '/api/chat/stream',
@@ -944,34 +894,81 @@ app.post(
         });
       }
 
-      const reference = String(
-  req.body.reference || ''
-).trim();
+      const reference =
+        `PETRUX_${Date.now()}_` +
+        crypto.randomBytes(6).toString('hex');
 
-const payment =
-  await verifyPayment(reference);
+      const payment = await paystack(
+        'https://api.paystack.co/transaction/initialize',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: email,
+            amount: PRICE,
+            currency: 'NGN',
+            reference: reference,
+            callback_url:
+              `${appURL(req)}/api/subscription/callback`,
+            metadata: {
+              plan: PLAN,
+              product: 'Petrux AI Pro',
+              duration_days: 7
+            }
+          })
+        }
+      );
 
-const token = createToken(
-  payment.customer.email,
-  payment.reference,
-  payment.paid_at
+      res.json({
+        success: true,
+        authorization_url:
+          payment.authorization_url,
+        access_code:
+          payment.access_code,
+        reference:
+          payment.reference
+      });
+    } catch (err) {
+      sendError(
+        res,
+        err,
+        'Could not initialize payment.'
+      );
+    }
+  }
 );
 
-const paymentTime =
-  payment.paid_at
-    ? Date.parse(payment.paid_at)
-    : Date.now();
+app.post(
+  '/api/subscription/verify',
+  async function (req, res) {
+    try {
+      const reference = String(
+        req.body.reference || ''
+      ).trim();
 
-res.json({
-  success: true,
-  message:
-    'Petrux Pro activated successfully.',
-  token: token,
-  email: payment.customer.email,
-  expires_at: new Date(
-    paymentTime + DURATION
-  ).toISOString()
-});
+      const payment =
+        await verifyPayment(reference);
+
+      const token = createToken(
+        payment.customer.email,
+        payment.reference,
+        payment.paid_at
+      );
+
+      const paymentTime =
+        payment.paid_at
+          ? Date.parse(payment.paid_at)
+          : Date.now();
+
+      res.json({
+        success: true,
+        message:
+          'Petrux Pro activated successfully.',
+        token: token,
+        email: payment.customer.email,
+        expires_at: new Date(
+          paymentTime + DURATION
+        ).toISOString()
+      });
     } catch (err) {
       sendError(
         res,
@@ -981,10 +978,6 @@ res.json({
     }
   }
 );
-
-/* =========================================
-   PAYSTACK CALLBACK
-========================================= */
 
 app.get(
   '/api/subscription/callback',
@@ -1033,3 +1026,155 @@ app.get(
     }
   }
 );
+
+app.get(
+  '/api/subscription/status',
+  function (req, res) {
+    const user =
+      verifyToken(bearer(req));
+
+    if (!user) {
+      return res.json({
+        active: false,
+        pro: false
+      });
+    }
+
+    res.json({
+      active: true,
+      pro: true,
+      email: user.email,
+      expires_at: new Date(
+        user.exp
+      ).toISOString(),
+      days_remaining: Math.max(
+        0,
+        Math.ceil(
+          (user.exp - Date.now()) /
+          86400000
+        )
+      )
+    });
+  }
+);
+
+/* =========================================
+   PRO FEATURES
+========================================= */
+
+app.post(
+  '/api/images',
+  requirePro,
+  function (req, res) {
+    res.status(501).json({
+      error:
+        'Image generation provider is not connected yet. Your Pro access is active.'
+    });
+  }
+);
+
+app.post(
+  '/api/song-audio',
+  requirePro,
+  function (req, res) {
+    res.status(501).json({
+      error:
+        'Music generation provider is not connected yet. Your Pro access is active.'
+    });
+  }
+);
+
+/* =========================================
+   HEALTH CHECK
+========================================= */
+
+app.get('/health', function (req, res) {
+  res.json({
+    status: 'healthy',
+    service: 'Petrux AI'
+  });
+});
+
+/* =========================================
+   FRONTEND
+========================================= */
+
+app.use(function (req, res, next) {
+  if (
+    req.method !== 'GET' ||
+    req.path.startsWith('/api/')
+  ) {
+    return next();
+  }
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public',
+      'index.html'
+    ),
+    function (err) {
+      if (err && !res.headersSent) {
+        res.status(404).send(
+          'Petrux AI website not found.'
+        );
+      }
+    }
+  );
+});
+
+/* =========================================
+   GLOBAL ERROR HANDLER
+========================================= */
+
+app.use(function (err, req, res, next) {
+  console.error('SERVER ERROR:', err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(err.status || 500).json({
+    error:
+      err.status === 400
+        ? 'Invalid request.'
+        : 'An internal server error occurred.'
+  });
+});
+
+/* =========================================
+   START SERVER
+========================================= */
+
+app.listen(PORT, function () {
+  console.log('================================');
+  console.log('PETRUX AI ONLINE');
+  console.log(`Port: ${PORT}`);
+  console.log(
+    `Groq: ${
+      GROQ_API_KEY
+        ? 'Configured'
+        : 'Missing'
+    }`
+  );
+  console.log(
+    `Gemini: ${
+      GEMINI_API_KEY
+        ? 'Configured'
+        : 'Missing'
+    }`
+  );
+  console.log(
+    `Paystack: ${
+      PAYSTACK_SECRET_KEY
+        ? 'Configured'
+        : 'Missing'
+    }`
+  );
+  console.log(
+    `AI Timeout: ${TIMEOUT / 1000} seconds`
+  );
+  console.log('Pro: ₦1,200 / 7 days');
+  console.log('Creator: Peter Oriorowho');
+  console.log('================================');
+});
