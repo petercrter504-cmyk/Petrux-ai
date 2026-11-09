@@ -1,6 +1,7 @@
 {
   "name": "petrux-ai",
   "version": "1.0.0",
+  "description": "Petrux AI by Peter Oriorowho",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
