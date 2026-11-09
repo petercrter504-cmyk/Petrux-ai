@@ -1,1184 +1,885 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#212121">
-<title>Petrux AI</title>
-
-<style>
-:root{
---bg:#212121;
---side:#171717;
---panel:#2f2f2f;
---line:#3d3d3d;
---text:#ececec;
---muted:#a1a1aa;
---green:#10a37f;
---purple:#9b5cff;
---blue:#398cff;
-}
-
-*{box-sizing:border-box}
-
-html,body{height:100%;margin:0}
-
-body{
-background:var(--bg);
-color:var(--text);
-font:15px/1.55 system-ui,sans-serif
-}
-
-button,input,textarea,select{font:inherit}
-button{cursor:pointer;color:inherit}
-
-.app{height:100dvh;display:flex;overflow:hidden}
-
-.sidebar{
-width:260px;
-flex:0 0 260px;
-background:var(--side);
-display:flex;
-flex-direction:column;
-padding:12px;
-transition:transform .2s
-}
-
-.brandrow{
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:5px 4px 18px
-}
-
-.brand{font-weight:750;font-size:18px}
-.brand span{color:#b9b9b9}
-
-.iconbtn{
-border:0;
-background:transparent;
-border-radius:9px;
-padding:9px;
-color:#c7c7c7
-}
-
-.iconbtn:hover,.sidebtn:hover{background:#292929}
-
-.sidebtn{
-display:flex;
-align-items:center;
-gap:11px;
-width:100%;
-padding:11px 12px;
-border:0;
-border-radius:9px;
-background:transparent;
-text-align:left;
-color:#e6e6e6;
-font-size:14px
-}
-
-.sidebtn .ico{width:19px;text-align:center;font-size:17px}
-
-.sideheading{
-font-size:12px;
-color:#888;
-padding:24px 10px 8px
-}
-
-.chatlist{overflow:auto;flex:1}
-
-.chatitem{
-display:block;
-width:100%;
-overflow:hidden;
-text-overflow:ellipsis;
-white-space:nowrap;
-text-align:left;
-padding:9px 11px;
-border:0;
-border-radius:8px;
-background:transparent;
-color:#c8c8c8;
-font-size:13px
-}
-
-.chatitem:hover,.chatitem.active{
-background:#292929;
-color:white
-}
-
-/* PRO BADGE */
-
-.pro-badge{
-display:inline-flex;
-align-items:center;
-gap:4px;
-padding:3px 9px;
-border-radius:20px;
-font-size:10px;
-font-weight:850;
-letter-spacing:1px;
-color:white;
-background:linear-gradient(110deg,#398cff,#8755ff,#c05aff);
-box-shadow:0 0 10px #8155ff55;
-position:relative;
-overflow:hidden;
-vertical-align:middle;
-}
-
-.pro-badge::after{
-content:"";
-position:absolute;
-top:0;
-left:-100%;
-width:60%;
-height:100%;
-background:linear-gradient(90deg,transparent,#ffffff80,transparent);
-transform:skewX(-20deg);
-animation:shine 3s infinite;
-}
-
-@keyframes shine{
-0%{left:-100%}
-60%,100%{left:150%}
-}
-
-/* PROFILE */
-
-.profile{
-display:flex;
-align-items:center;
-gap:10px;
-border-top:1px solid #303030;
-padding:13px 5px 4px;
-margin-top:10px;
-font-size:13px
-}
-
-.avatar{
-width:30px;
-height:30px;
-border-radius:50%;
-display:grid;
-place-items:center;
-background:#356b60;
-color:white;
-font-weight:700;
-flex-shrink:0
-}
-
-.profile-avatar.pro{
-border:2px solid transparent;
-background:
-linear-gradient(#171717,#171717) padding-box,
-linear-gradient(135deg,#398cff,#b45cff,#398cff) border-box;
-box-shadow:0 0 12px #8855ff88;
-}
-
-.profile-info{min-width:0}
-.profile-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-
-.pro-status{
-font-size:10px;
-color:#aaa
-}
-
-.upgrade-btn{
-margin:12px 0;
-width:100%;
-padding:12px;
-border:1px solid #7050c9;
-border-radius:12px;
-background:linear-gradient(110deg,#253b68,#56328c,#743da5);
-font-weight:750;
-box-shadow:0 0 16px #7955ff25;
-transition:.2s
-}
-
-.upgrade-btn:hover{
-transform:translateY(-2px);
-box-shadow:0 0 22px #7955ff65
-}
-
-.main{
-min-width:0;
-flex:1;
-display:flex;
-flex-direction:column;
-position:relative
-}
-
-.topbar{
-height:58px;
-flex:0 0 58px;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 20px
-}
-
-.mobilemenu{display:none}
-.modelname{font-weight:650;font-size:16px}
-.modelname small{font-weight:400;color:#aaa;font-size:12px}
-
-.topright{display:flex;align-items:center;gap:8px}
-.status{font-size:11px;color:#a5a5a5}
-.dot{
-display:inline-block;
-width:7px;
-height:7px;
-border-radius:50%;
-background:#b28b4d;
-margin-right:5px
-}
-.dot.on{background:#10a37f}
-
-.page{display:none;flex:1;min-height:0;overflow:auto}
-.page.active{display:flex;flex-direction:column}
-
-.chatarea{
-flex:1;
-overflow:auto;
-padding:20px 20px 30px;
-scroll-behavior:smooth
-}
-
-.welcome{
-min-height:100%;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-text-align:center;
-padding:30px
-}
-
-.welcome h1{
-font-size:30px;
-letter-spacing:-1px;
-font-weight:600;
-margin:0 0 22px
-}
-
-.welcome p{color:#aaa;max-width:500px;margin:0}
-
-.messages{
-max-width:790px;
-margin:0 auto;
-display:flex;
-flex-direction:column;
-gap:25px
-}
-
-.message{display:flex;gap:13px;align-items:flex-start}
-.message.user{justify-content:flex-end}
-
-.message .bubble{
-max-width:min(100%,690px);
-white-space:pre-wrap;
-overflow-wrap:anywhere
-}
-
-.message.user .bubble{
-background:#303030;
-border-radius:20px;
-padding:11px 17px
-}
-
-.message.assistant .bubble{padding:2px 0;line-height:1.75}
-.message.assistant .avatar{background:#10a37f;flex:0 0 30px}
-.message.user .avatar{display:none}
-
-.sources{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-.sources a{
-color:#9bd9ca;
-font-size:12px;
-text-decoration:none;
-border:1px solid #444;
-border-radius:20px;
-padding:4px 9px
-}
-
-.composerwrap{
-width:min(790px,calc(100% - 30px));
-margin:0 auto 16px
-}
-
-.composer{
-background:#303030;
-border:1px solid #454545;
-border-radius:26px;
-padding:10px 12px;
-display:flex;
-align-items:flex-end;
-gap:9px;
-box-shadow:0 4px 22px #0002
-}
-
-.composer:focus-within{border-color:#666}
-
-#question{
-flex:1;
-resize:none;
-max-height:180px;
-min-height:34px;
-border:0;
-outline:0;
-background:transparent;
-color:white;
-padding:7px 4px;
-font-size:15px
-}
-
-#question::placeholder{color:#a0a0a0}
-
-.round{
-width:38px;
-height:38px;
-flex:0 0 38px;
-border:0;
-border-radius:50%;
-display:grid;
-place-items:center;
-background:#555;
-color:white
-}
-
-.round.send{
-background:#f4f4f4;
-color:#171717;
-font-size:20px;
-font-weight:700
-}
-
-.round:disabled{opacity:.4}
-
-.toolsrow{
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:8px 8px 0;
-color:#999;
-font-size:11px;
-gap:8px
-}
-
-.toolsrow label{display:flex;align-items:center;gap:6px}
-.toolsrow input{accent-color:var(--green)}
-
-.disclaimer{
-text-align:center;
-color:#888;
-font-size:11px;
-padding:0 10px 12px
-}
-
-.pageinner{
-width:min(790px,calc(100% - 32px));
-margin:35px auto
-}
-
-.pageinner h1{font-size:27px;font-weight:600}
-.muted{color:#aaa}
-
-.field{margin:18px 0}
-
-.field label{
-display:block;
-color:#cfcfcf;
-font-size:13px;
-margin-bottom:8px
-}
-
-.field textarea,.field input,.field select{
-width:100%;
-background:#303030;
-border:1px solid #484848;
-border-radius:13px;
-padding:13px;
-color:white;
-outline:0
-}
-
-.primary{
-background:#10a37f;
-border:0;
-color:white;
-border-radius:12px;
-padding:11px 17px;
-font-weight:650
-}
-
-.secondary{
-background:#333;
-border:1px solid #555;
-border-radius:12px;
-padding:10px 15px
-}
-
-.result{
-margin-top:18px;
-padding:16px;
-background:#2b2b2b;
-border:1px solid #414141;
-border-radius:13px;
-white-space:pre-wrap;
-overflow-wrap:anywhere
-}
-
-.result img{max-width:100%;border-radius:10px;display:block}
-.result audio{width:100%;margin-top:12px}
-
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-/* PRO SUBSCRIPTION MODAL */
-
-.modal{
-display:none;
-position:fixed;
-inset:0;
-z-index:100;
-background:#000b;
-align-items:center;
-justify-content:center;
-padding:18px
-}
-
-.modal.show{display:flex}
-
-.pro-card{
-width:min(440px,100%);
-background:linear-gradient(145deg,#242438,#171725);
-border:1px solid #6550a5;
-border-radius:23px;
-padding:25px;
-position:relative;
-box-shadow:0 0 45px #7655ff35;
-animation:appear .25s ease
-}
-
-@keyframes appear{
-from{opacity:0;transform:translateY(15px)}
-to{opacity:1;transform:translateY(0)}
-}
-
-.close-modal{
-position:absolute;
-right:16px;
-top:13px;
-border:0;
-background:#333;
-border-radius:50%;
-width:30px;
-height:30px
-}
-
-.pro-logo{
-font-size:43px;
-text-align:center;
-margin:12px
-}
-
-.pro-title{
-text-align:center;
-font-size:28px;
-font-weight:850;
-background:linear-gradient(90deg,#62aaff,#bc75ff);
--webkit-background-clip:text;
-background-clip:text;
-color:transparent
-}
-
-.pro-description{
-text-align:center;
-color:#aaa;
-font-size:13px
-}
-
-.pro-price{
-text-align:center;
-font-size:35px;
-font-weight:850;
-margin:20px 0 4px
-}
-
-.pro-price small{font-size:13px;color:#aaa;font-weight:400}
-
-.pro-benefits{
-padding:0;
-list-style:none;
-margin:20px 0
-}
-
-.pro-benefits li{
-padding:9px 0;
-border-bottom:1px solid #ffffff12;
-font-size:14px
-}
-
-.pro-subscribe{
-width:100%;
-padding:14px;
-border:0;
-border-radius:12px;
-font-weight:800;
-background:linear-gradient(100deg,#398cff,#9a55ed);
-color:white
-}
-
-.pro-note{
-text-align:center;
-color:#999;
-font-size:11px;
-margin-top:12px
-}
-
-.mobilebackdrop{display:none}
-
-@media(max-width:700px){
-.sidebar{
-position:fixed;
-z-index:20;
-inset:0 auto 0 0;
-transform:translateX(-105%);
-box-shadow:10px 0 40px #0008
-}
-.sidebar.open{transform:translateX(0)}
-.mobilebackdrop.show{
-display:block;
-position:fixed;
-inset:0;
-background:#0008;
-z-index:19
-}
-.mobilemenu{display:inline-block}
-.topbar{padding:0 12px}
-.chatarea{padding:12px 14px 20px}
-.welcome h1{font-size:25px}
-.composerwrap{
-width:calc(100% - 20px);
-margin-bottom:10px
-}
-.toolsrow{font-size:10px}
-.status{display:none}
-}
-</style>
-</head>
-
-<body>
-
-<div class="mobilebackdrop" id="backdrop" onclick="toggleSidebar(false)"></div>
-
-<div class="app">
-
-<aside class="sidebar" id="sidebar">
-
-<div class="brandrow">
-<div class="brand">Petrux <span>AI</span></div>
-<button class="iconbtn" onclick="toggleSidebar(false)">✕</button>
-</div>
-
-<button class="sidebtn" onclick="newChat()">＋ New chat</button>
-<button class="sidebtn" onclick="showPage('images')">▧ Create image</button>
-<button class="sidebtn" onclick="showPage('songs')">♫ Song Lab</button>
-<button class="sidebtn" onclick="showPage('voice')">◖)) Voice</button>
-
-<button class="upgrade-btn" onclick="openPro()">
-💎 Upgrade to Petrux Pro
-</button>
-
-<div class="sideheading">Recent chats</div>
-
-<div class="chatlist" id="chatlist"></div>
-
-<div class="profile">
-
-<div class="avatar profile-avatar" id="profileAvatar">P</div>
-
-<div class="profile-info">
-
-<div class="profile-name">
-<b id="profileName">Petrux AI</b>
-
-<span class="pro-badge" id="profileBadge" style="display:none">
-💎 PRO
-</span>
-</div>
-
-<div class="pro-status" id="profileStatus">
-Created by Peter Oriorowho
-</div>
-
-</div>
-</div>
-
-</aside>
-
-<main class="main">
-
-<header class="topbar">
-
-<div class="row">
-<button class="iconbtn mobilemenu" onclick="toggleSidebar(true)">☰</button>
-
-<div class="modelname" onclick="showPage('chat')">
-Petrux AI <small>⌄</small>
-</div>
-</div>
-
-<div class="topright">
-<span class="status">
-<i class="dot" id="dot"></i>
-<span id="statusText">Connecting…</span>
-</span>
-</div>
-
-</header>
-
-<section class="page active" id="chat">
-
-<div class="chatarea" id="chatarea">
-
-<div class="welcome" id="welcome">
-<h1>What can I help with?</h1>
-<p>Ask Petrux anything. Get help with ideas, writing, learning, research and more.</p>
-</div>
-
-<div class="messages" id="messages"></div>
-
-</div>
-
-<div class="composerwrap">
-
-<div class="composer">
-
-<button class="round" onclick="showPage('images')">＋</button>
-
-<textarea id="question" rows="1"
-placeholder="Message Petrux AI…" autocomplete="off"></textarea>
-
-<button class="round send" id="sendBtn"
-onclick="sendMessage()">↑</button>
-
-</div>
-
-<div class="toolsrow">
-<label><input type="checkbox" id="research"> Search the web</label>
-<span id="chatStatus">Petrux can make mistakes. Check important information.</span>
-</div>
-
-</div>
-
-<div class="disclaimer">
-AI-generated responses may be inaccurate. Verify important information.
-</div>
-
-</section>
-
-<section class="page" id="images">
-
-<div class="pageinner">
-<h1>Create an image</h1>
-<p class="muted">Describe what you want Petrux to create.</p>
-
-<div class="field">
-<textarea id="imagePrompt" rows="4"
-placeholder="A beautiful cinematic view of Lagos at sunset…"></textarea>
-</div>
-
-<button class="primary" id="imageBtn" onclick="createImage()">Generate image</button>
-<div class="result" id="imageResult" style="display:none"></div>
-</div>
-
-</section>
-
-<section class="page" id="songs">
-
-<div class="pageinner">
-
-<h1>Song Lab</h1>
-<p class="muted">Create original lyrics and music ideas.</p>
-
-<div class="field">
-<label>Song idea</label>
-<textarea id="songIdea" rows="4"
-placeholder="A motivational Afrobeats song about rising from nothing…"></textarea>
-</div>
-
-<div class="row">
-
-<div class="field" style="flex:1">
-<label>Genre</label>
-<select id="genre">
-<option>Afrobeats</option>
-<option>Afro-fusion</option>
-<option>Hip-hop</option>
-<option>Afro-R&B</option>
-<option>Pop</option>
-<option>Dancehall</option>
-</select>
-</div>
-
-<div class="field" style="flex:1">
-<label>Mood</label>
-<select id="mood">
-<option>Confident</option>
-<option>Emotional</option>
-<option>Romantic</option>
-<option>Motivational</option>
-<option>Joyful</option>
-</select>
-</div>
-
-</div>
-
-<button class="primary" id="songBtn" onclick="writeSong()">Write lyrics</button>
-<div class="result" id="songResult" style="display:none"></div>
-
-<div class="field">
-<label>Full song prompt (optional)</label>
-<textarea id="musicPrompt" rows="3"
-placeholder="Describe the beat, instruments and vocal style…"></textarea>
-</div>
-
-<button class="secondary" id="trackBtn" onclick="makeTrack()">Generate full song</button>
-<div class="result" id="trackResult" style="display:none"></div>
-
-</div>
-</section>
-
-<section class="page" id="voice">
-
-<div class="pageinner">
-
-<h1>Voice studio</h1>
-<p class="muted">Speak your message or listen to Petrux read a reply.</p>
-
-<div class="field">
-<textarea id="voiceInput" rows="4"
-placeholder="Type or dictate your message…"></textarea>
-</div>
-
-<div class="row">
-<button class="primary" onclick="askVoice()">Ask Petrux</button>
-<button class="secondary" onclick="startDictation()">🎙 Dictate</button>
-<button class="secondary" onclick="speakLast()">Read answer aloud</button>
-</div>
-
-<div class="result" id="voiceResult">Your answer will appear here.</div>
-
-</div>
-</section>
-
-</main>
-</div>
-
-<!-- PRO SUBSCRIPTION MODAL -->
-
-<div class="modal" id="proModal" onclick="if(event.target===this)closePro()">
-
-<div class="pro-card">
-
-<button class="close-modal" onclick="closePro()">✕</button>
-
-<div class="pro-logo">💎</div>
-
-<div class="pro-title">PETRUX PRO</div>
-
-<p class="pro-description">
-Unlock a more powerful Petrux AI experience.
-</p>
-
-<div class="pro-price">
-₦1,200 <small>/ 7 days</small>
-</div>
-
-<ul class="pro-benefits">
-<li>✨ Higher AI conversation limits</li>
-<li>🌐 Extended internet research</li>
-<li>🎨 Higher image generation limits</li>
-<li>⚡ Priority response experience</li>
-<li>🎵 Extended Song Lab features</li>
-<li>💎 Exclusive animated Pro badge</li>
-<li>👑 Premium profile appearance</li>
-</ul>
-
-<button class="pro-subscribe" onclick="subscribePro()">
-Get Petrux Pro
-</button>
-
-<p class="pro-note" id="proNote">
-Secure payment integration is coming soon.
-</p>
-
-</div>
-</div>
-
 <script>
+const $ = id => document.getElementById(id);
 
-const $=id=>document.getElementById(id);
+let history = [];
+let busy = false;
+let lastAnswer = '';
 
-let history=[];
-let busy=false;
-let lastAnswer='';
-
-let chats=JSON.parse(localStorage.getItem('petrux_chats')||'[]');
-let currentChat=Date.now().toString();
-
-/* PRO STATUS */
-
-let isPro=false;
-
-function updateProBadge(active){
-
-isPro=Boolean(active);
-
-$('profileBadge').style.display=isPro?'inline-flex':'none';
-
-$('profileAvatar').classList.toggle('pro',isPro);
-
-$('profileStatus').textContent=isPro
-?'💎 Petrux Pro Member'
-:'Created by Peter Oriorowho';
-
-$('profileName').textContent='Petrux AI';
-
-}
-
-async function checkProStatus(){
-
-try{
-
-const response=await fetch('/api/subscription/status');
-
-if(!response.ok)return;
-
-const data=await response.json();
-
-updateProBadge(
-data.active===true &&
-data.status==='active'
+let chats = JSON.parse(
+  localStorage.getItem('petrux_chats') || '[]'
 );
 
-}catch(error){
+let currentChat = Date.now().toString();
+let isPro = false;
 
-console.log('Subscription status unavailable.');
+/* =========================================
+   PRO STATUS
+========================================= */
 
+function updateProBadge(active) {
+  isPro = Boolean(active);
+
+  $('profileBadge').style.display =
+    isPro ? 'inline-flex' : 'none';
+
+  $('profileAvatar').classList.toggle('pro', isPro);
+
+  $('profileStatus').textContent = isPro
+    ? '💎 Petrux Pro Member'
+    : 'Created by Peter Oriorowho';
+
+  $('profileName').textContent = 'Petrux AI';
 }
 
+async function checkProStatus() {
+  try {
+    const token = localStorage.getItem(
+      'petrux_pro_token'
+    );
+
+    const headers = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      '/api/subscription/status',
+      { headers }
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+
+    updateProBadge(data.active === true);
+  } catch (error) {
+    console.log('Subscription status unavailable.');
+  }
 }
 
-function openPro(){
-$('proModal').classList.add('show');
+function openPro() {
+  $('proModal').classList.add('show');
 }
 
-function closePro(){
-$('proModal').classList.remove('show');
+function closePro() {
+  $('proModal').classList.remove('show');
 }
 
-async function subscribePro(){
+async function subscribePro() {
+  const email = prompt(
+    'Enter your email address for Petrux Pro:'
+  );
 
-$('proNote').textContent=
-'Payment integration is not connected yet. No payment has been taken.';
+  if (!email) {
+    return;
+  }
 
+  const button = document.querySelector(
+    '.pro-subscribe'
+  );
+
+  button.disabled = true;
+
+  $('proNote').textContent =
+    'Preparing secure payment...';
+
+  try {
+    const response = await fetch(
+      '/api/subscription/initialize',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error || 'Could not start payment.'
+      );
+    }
+
+    if (data.authorization_url) {
+      window.location.href =
+        data.authorization_url;
+      return;
+    }
+
+    throw new Error(
+      'Payment link was not received.'
+    );
+  } catch (error) {
+    $('proNote').textContent =
+      error.message || 'Payment could not be started.';
+
+    button.disabled = false;
+  }
 }
 
-/* NAVIGATION */
+/* =========================================
+   NAVIGATION
+========================================= */
 
-function toggleSidebar(open){
-
-$('sidebar').classList.toggle('open',open);
-$('backdrop').classList.toggle('show',open);
-
+function toggleSidebar(open) {
+  $('sidebar').classList.toggle('open', open);
+  $('backdrop').classList.toggle('show', open);
 }
 
-function showPage(id){
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(page => {
+    page.classList.toggle(
+      'active',
+      page.id === id
+    );
+  });
 
-document.querySelectorAll('.page').forEach(p=>{
-p.classList.toggle('active',p.id===id);
-});
-
-toggleSidebar(false);
-
+  toggleSidebar(false);
 }
 
-function saveChats(){
+function saveChats() {
+  localStorage.setItem(
+    'petrux_chats',
+    JSON.stringify(chats.slice(-30))
+  );
 
-localStorage.setItem(
-'petrux_chats',
-JSON.stringify(chats.slice(-30))
+  renderChats();
+}
+
+function renderChats() {
+  $('chatlist').innerHTML = '';
+
+  chats.slice().reverse().forEach(chat => {
+    const button = document.createElement('button');
+
+    button.className =
+      'chatitem' +
+      (
+        chat.id === currentChat
+          ? ' active'
+          : ''
+      );
+
+    button.textContent =
+      chat.title || 'New chat';
+
+    button.onclick = () =>
+      loadChat(chat.id);
+
+    $('chatlist').append(button);
+  });
+}
+
+function newChat() {
+  if (history.length) {
+    chats = chats.filter(
+      chat => chat.id !== currentChat
+    );
+
+    chats.push({
+      id: currentChat,
+      title:
+        history.find(
+          message => message.role === 'user'
+        )?.content.slice(0, 36) ||
+        'New chat',
+      messages: history
+    });
+  }
+
+  history = [];
+  currentChat = Date.now().toString();
+
+  $('messages').innerHTML = '';
+
+  $('welcome').style.display = 'flex';
+
+  $('chatStatus').textContent =
+    'New conversation';
+
+  saveChats();
+  showPage('chat');
+}
+
+function loadChat(id) {
+  const chat = chats.find(
+    item => item.id === id
+  );
+
+  if (!chat) {
+    return;
+  }
+
+  history = chat.messages || [];
+  currentChat = id;
+
+  $('messages').innerHTML = '';
+
+  $('welcome').style.display =
+    history.length ? 'none' : 'flex';
+
+  history.forEach(message => {
+    addMessage(
+      message.role,
+      message.content
+    );
+  });
+
+  renderChats();
+  showPage('chat');
+}
+
+/* =========================================
+   CHAT
+========================================= */
+
+function addMessage(role, text) {
+  $('welcome').style.display = 'none';
+
+  const row = document.createElement('div');
+
+  row.className =
+    'message ' + role;
+
+  const avatar =
+    document.createElement('div');
+
+  avatar.className = 'avatar';
+  avatar.textContent = 'P';
+
+  const bubble =
+    document.createElement('div');
+
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  if (role === 'assistant') {
+    row.append(avatar, bubble);
+  } else {
+    row.append(bubble);
+  }
+
+  $('messages').append(row);
+
+  $('chatarea').scrollTop =
+    $('chatarea').scrollHeight;
+
+  return bubble;
+}
+
+async function sendMessage() {
+  const input = $('question');
+
+  const text = input.value.trim();
+
+  if (!text || busy) {
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  history.push({
+    role: 'user',
+    content: text
+  });
+
+  addMessage('user', text);
+
+  const bubble =
+    addMessage('assistant', 'Thinking…');
+
+  busy = true;
+
+  $('sendBtn').disabled = true;
+
+  $('chatStatus').textContent =
+    'Petrux is thinking…';
+
+  let answer = '';
+  let completed = false;
+
+  try {
+    const response = await fetch(
+      '/api/chat/stream',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages: history,
+          research: $('research').checked
+        })
+      }
+    );
+
+    if (!response.ok) {
+      let errorData = {};
+
+      try {
+        errorData =
+          await response.json();
+      } catch (error) {}
+
+      throw new Error(
+        errorData.error ||
+        'Could not connect to Petrux AI.'
+      );
+    }
+
+    if (!response.body) {
+      throw new Error(
+        'No response stream received.'
+      );
+    }
+
+    const reader =
+      response.body.getReader();
+
+    const decoder =
+      new TextDecoder();
+
+    let buffer = '';
+
+    while (true) {
+      const result =
+        await reader.read();
+
+      if (result.done) {
+        break;
+      }
+
+      buffer += decoder.decode(
+        result.value,
+        { stream: true }
+      );
+
+      const frames =
+        buffer.split('\n\n');
+
+      buffer = frames.pop() || '';
+
+      for (const frame of frames) {
+        const line =
+          frame
+            .split('\n')
+            .find(item =>
+              item.startsWith('data: ')
+            );
+
+        if (!line) {
+          continue;
+        }
+
+        let event;
+
+        try {
+          event = JSON.parse(
+            line.slice(6)
+          );
+        } catch (error) {
+          continue;
+        }
+
+        /*
+         * This matches your server.js:
+         *
+         * data: {"token":"Hello"}
+         * data: {"done":true}
+         */
+
+        if (
+          typeof event.token === 'string'
+        ) {
+          if (!answer) {
+            bubble.textContent = '';
+          }
+
+          answer += event.token;
+
+          bubble.textContent = answer;
+
+          $('chatarea').scrollTop =
+            $('chatarea').scrollHeight;
+        }
+
+        if (event.done === true) {
+          completed = true;
+        }
+
+        if (event.error) {
+          throw new Error(event.error);
+        }
+      }
+    }
+
+    if (!completed && !answer) {
+      throw new Error(
+        'Connection ended before receiving an answer.'
+      );
+    }
+
+    if (!answer) {
+      answer =
+        'Sorry, Petrux AI did not return a response.';
+    }
+
+    bubble.textContent = answer;
+
+    history.push({
+      role: 'assistant',
+      content: answer
+    });
+
+    lastAnswer = answer;
+
+    $('chatStatus').textContent =
+      'Ready';
+
+    chats = chats.filter(
+      chat => chat.id !== currentChat
+    );
+
+    chats.push({
+      id: currentChat,
+      title:
+        history.find(
+          message => message.role === 'user'
+        )?.content.slice(0, 36) ||
+        'New chat',
+      messages: history
+    });
+
+    saveChats();
+
+  } catch (error) {
+    console.error(
+      'Chat error:',
+      error
+    );
+
+    bubble.textContent = answer
+      ? answer +
+        '\n\n[Connection issue: ' +
+        error.message +
+        ']'
+      : 'Sorry, I could not get a reply. ' +
+        error.message;
+
+    $('chatStatus').textContent =
+      'Connection error';
+  } finally {
+    busy = false;
+
+    $('sendBtn').disabled = false;
+
+    input.focus();
+  }
+}
+
+/* =========================================
+   IMAGE GENERATION
+========================================= */
+
+async function createImage() {
+  const prompt =
+    $('imagePrompt').value.trim();
+
+  if (!prompt) {
+    alert(
+      'Please describe the image you want.'
+    );
+    return;
+  }
+
+  if (!isPro) {
+    openPro();
+    return;
+  }
+
+  const button = $('imageBtn');
+  const result = $('imageResult');
+
+  button.disabled = true;
+  button.textContent = 'Generating…';
+
+  result.style.display = 'block';
+  result.textContent =
+    'Creating your image…';
+
+  try {
+    const token = localStorage.getItem(
+      'petrux_pro_token'
+    );
+
+    const response = await fetch(
+      '/api/images',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:
+            `Bearer ${token || ''}`
+        },
+        body: JSON.stringify({ prompt })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        'Image generation failed.'
+      );
+    }
+
+    result.textContent =
+      data.message ||
+      'Image generated successfully.';
+  } catch (error) {
+    result.textContent =
+      error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent =
+      'Generate image';
+  }
+}
+
+/* =========================================
+   SONG LAB
+========================================= */
+
+async function writeSong() {
+  const idea =
+    $('songIdea').value.trim();
+
+  const genre =
+    $('genre').value;
+
+  const mood =
+    $('mood').value;
+
+  if (!idea) {
+    alert(
+      'Please enter a song idea.'
+    );
+    return;
+  }
+
+  const button = $('songBtn');
+  const result = $('songResult');
+
+  button.disabled = true;
+  button.textContent =
+    'Writing…';
+
+  result.style.display = 'block';
+  result.textContent =
+    'Petrux is writing your song…';
+
+  try {
+    const response = await fetch(
+      '/api/song',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
+        body: JSON.stringify({
+          prompt:
+            `Genre: ${genre}\n` +
+            `Mood: ${mood}\n` +
+            `Idea: ${idea}`
+        })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        'Song generation failed.'
+      );
+    }
+
+    result.textContent =
+      data.lyrics ||
+      'No lyrics were returned.';
+  } catch (error) {
+    result.textContent =
+      'Error: ' + error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent =
+      'Write lyrics';
+  }
+}
+
+async function makeTrack() {
+  if (!isPro) {
+    openPro();
+    return;
+  }
+
+  const prompt =
+    $('musicPrompt').value.trim();
+
+  if (!prompt) {
+    alert(
+      'Please describe the song you want.'
+    );
+    return;
+  }
+
+  const button = $('trackBtn');
+  const result = $('trackResult');
+
+  button.disabled = true;
+  button.textContent =
+    'Generating…';
+
+  result.style.display = 'block';
+  result.textContent =
+    'Preparing your full song…';
+
+  try {
+    const token = localStorage.getItem(
+      'petrux_pro_token'
+    );
+
+    const response = await fetch(
+      '/api/song-audio',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+          Authorization:
+            `Bearer ${token || ''}`
+        },
+        body: JSON.stringify({ prompt })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        'Song generation failed.'
+      );
+    }
+
+    result.textContent =
+      data.message ||
+      'Your song is ready.';
+  } catch (error) {
+    result.textContent =
+      error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent =
+      'Generate full song';
+  }
+}
+
+/* =========================================
+   VOICE
+========================================= */
+
+async function askVoice() {
+  const input =
+    $('voiceInput').value.trim();
+
+  if (!input) {
+    alert(
+      'Please enter a message first.'
+    );
+    return;
+  }
+
+  const result =
+    $('voiceResult');
+
+  result.textContent =
+    'Petrux is thinking…';
+
+  try {
+    const response = await fetch(
+      '/api/chat',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
+        body: JSON.stringify({
+          message: input
+        })
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        'Could not get a response.'
+      );
+    }
+
+    lastAnswer = data.answer || '';
+
+    result.textContent =
+      lastAnswer || 'No answer received.';
+  } catch (error) {
+    result.textContent =
+      'Error: ' + error.message;
+  }
+}
+
+function startDictation() {
+  const Recognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!Recognition) {
+    alert(
+      'Voice dictation is not supported by this browser.'
+    );
+    return;
+  }
+
+  const recognition =
+    new Recognition();
+
+  recognition.lang = 'en-US';
+
+  recognition.onresult =
+    function (event) {
+      $('voiceInput').value =
+        event.results[0][0].transcript;
+    };
+
+  recognition.onerror =
+    function () {
+      alert(
+        'Voice recognition could not start.'
+      );
+    };
+
+  recognition.start();
+}
+
+function speakLast() {
+  if (!lastAnswer) {
+    alert(
+      'There is no answer to read yet.'
+    );
+    return;
+  }
+
+  if (!('speechSynthesis' in window)) {
+    alert(
+      'Text-to-speech is not supported by this browser.'
+    );
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const speech =
+    new SpeechSynthesisUtterance(
+      lastAnswer
+    );
+
+  speech.rate = 1;
+  speechSynthesis.speak(speech);
+}
+
+/* =========================================
+   KEYBOARD AND AUTO RESIZE
+========================================= */
+
+$('question').addEventListener(
+  'input',
+  function () {
+    this.style.height = 'auto';
+
+    this.style.height =
+      Math.min(
+        this.scrollHeight,
+        180
+      ) + 'px';
+  }
 );
 
-renderChats();
+$('question').addEventListener(
+  'keydown',
+  function (event) {
+    if (
+      event.key === 'Enter' &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
+      sendMessage();
+    }
+  }
+);
 
+/* =========================================
+   SERVER STATUS
+========================================= */
+
+async function checkStatus() {
+  try {
+    const response = await fetch(
+      '/api/status'
+    );
+
+    if (!response.ok) {
+      throw new Error();
+    }
+
+    await response.json();
+
+    $('dot').classList.add('on');
+
+    $('statusText').textContent =
+      'Online';
+  } catch (error) {
+    $('dot').classList.remove('on');
+
+    $('statusText').textContent =
+      'Offline';
+  }
 }
 
-function renderChats(){
-
-$('chatlist').innerHTML='';
-
-chats.slice().reverse().forEach(c=>{
-
-let b=document.createElement('button');
-
-b.className='chatitem'+
-(c.id===currentChat?' active':'');
-
-b.textContent=c.title||'New chat';
-
-b.onclick=()=>loadChat(c.id);
-
-$('chatlist').append(b);
-
-});
-
-}
-
-function newChat(){
-
-if(history.length){
-
-chats.push({
-id:currentChat,
-title:history.find(m=>m.role==='user')?.content.slice(0,36)||'New chat',
-messages:history
-});
-
-}
-
-history=[];
-
-currentChat=Date.now().toString();
-
-$('messages').innerHTML='';
-
-$('welcome').style.display='flex';
-
-$('chatStatus').textContent='New conversation';
-
-saveChats();
-
-showPage('chat');
-
-}
-
-function loadChat(id){
-
-let c=chats.find(x=>x.id===id);
-
-if(!c)return;
-
-history=c.messages||[];
-
-currentChat=id;
-
-$('messages').innerHTML='';
-
-$('welcome').style.display=history.length?'none':'flex';
-
-history.forEach(m=>addMessage(m.role,m.content));
+/* =========================================
+   START APP
+========================================= */
 
 renderChats();
-
-showPage('chat');
-
-}
-
-/* CHAT */
-
-function addMessage(role,text,sources=[]){
-
-$('welcome').style.display='none';
-
-let row=document.createElement('div');
-
-row.className='message '+role;
-
-let av=document.createElement('div');
-
-av.className='avatar';
-
-av.textContent='P';
-
-let bubble=document.createElement('div');
-
-bubble.className='bubble';
-
-bubble.textContent=text;
-
-if(role==='assistant'){
-
-row.append(av,bubble);
-
-}else{
-
-row.append(bubble);
-
-}
-
-$('messages').append(row);
-
-$('chatarea').scrollTop=$('chatarea').scrollHeight;
-
-return bubble;
-
-}
-
-async function sendMessage(){
-
-let input=$('question');
-
-let text=input.value.trim();
-
-if(!text||busy)return;
-
-input.value='';
-
-input.style.height='auto';
-
-history.push({role:'user',content:text});
-
-addMessage('user',text);
-
-let bubble=addMessage('assistant','Thinking…');
-
-busy=true;
-
-$('sendBtn').disabled=true;
-
-$('chatStatus').textContent='Petrux is thinking…';
-
-let answer='';
-let sources=[];
-let done=false;
-
-try{
-
-let r=await fetch('/api/chat/stream',{
-
-method:'POST',
-
-headers:{'Content-Type':'application/json'},
-
-body:JSON.stringify({
-messages:history,
-research:$('research').checked,
-effort:'medium'
-})
-
-});
-
-if(!r.ok){
-
-let e={};
-
-try{e=await r.json()}catch{}
-
-throw new Error(e.error||'Could not connect to Petrux AI');
-
-}
-
-let reader=r.body.getReader();
-
-let decoder=new TextDecoder();
-
-let buffer='';
-
-while(true){
-
-let {value,done:ended}=await reader.read();
-
-if(ended)break;
-
-buffer+=decoder.decode(value,{stream:true});
-
-let frames=buffer.split('\n\n');
-
-buffer=frames.pop();
-
-for(let frame of frames){
-
-let line=frame.split('\n').find(x=>x.startsWith('data: '));
-
-if(!line)continue;
-
-let ev=JSON.parse(line.slice(6));
-
-if(ev.type==='delta'){
-
-answer+=ev.text;
-
-bubble.textContent=answer;
-
-$('chatarea').scrollTop=$('chatarea').scrollHeight;
-
-}else if(ev.type==='status'){
-
-$('chatStatus').textContent=ev.message;
-
-}else if(ev.type==='done'){
-
-sources=ev.sources||[];
-
-done=true;
-
-}else if(ev.type==='error'){
-
-throw new Error(ev.message||'AI error');
-
-}
-
-}
-
-}
-
-if(!done)throw new Error('Connection ended before the answer finished');
-
-if(sources.length){
-
-let wrap=document.createElement('div');
-
-wrap.className='sources';
-
-sources.forEach(s=>{
-
-let a=document.createElement('a');
-
-a.href=s.url;
-
-a.target='_blank';
-
-a.rel='noopener noreferrer';
-
-a.textContent=s.title||'Source';
-
-wrap.append(a);
-
-});
-
-bubble.append(wrap);
-
-}
-
-history.push({role:'assistant',content:answer});
-
-lastAnswer=answer;
-
-$('chatStatus').textContent='Ready';
-
-chats=chats.filter(c=>c.id!==currentChat);
-
-chats.push({
-id:currentChat,
-title:history.find(m=>m.role==='user')?.content.slice(0,36)||'New chat',
-messages:history
-});
-
-saveChats();
-
-}catch(e){
-
-bubble.textContent=answer
-?answer+'\n\n[Connection issue: '+e.message+']'
-:'I could not get a reply
+checkStatus();
+checkProStatus();
+
+setInterval(
+  checkStatus,
+  30000
+);
+</script>
