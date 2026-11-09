@@ -271,6 +271,23 @@ line-height:1.75
 
 .message.assistant .avatar{background:#10a37f}
 
+/* COPY BUTTON - ADDED */
+
+.copy-answer{
+margin-top:8px;
+padding:6px 10px;
+border:1px solid #4a4a4a;
+border-radius:8px;
+background:transparent;
+color:#aaa;
+font-size:12px
+}
+
+.copy-answer:hover{
+background:#333;
+color:white
+}
+
 .composerwrap{
 width:min(790px,calc(100% - 30px));
 margin:0 auto 16px
@@ -872,7 +889,39 @@ const avatar=document.createElement('div');
 avatar.className='avatar';
 avatar.textContent='P';
 
-row.append(avatar,bubble);
+const answerBox=document.createElement('div');
+
+const copyButton=document.createElement('button');
+copyButton.className='copy-answer';
+copyButton.textContent='📋 Copy';
+
+copyButton.onclick=async()=>{
+
+try{
+
+await navigator.clipboard.writeText(bubble.textContent);
+
+copyButton.textContent='✓ Copied!';
+
+setTimeout(()=>{
+copyButton.textContent='📋 Copy';
+},1500);
+
+}catch(error){
+
+copyButton.textContent='Copy failed';
+
+setTimeout(()=>{
+copyButton.textContent='📋 Copy';
+},1500);
+
+}
+
+};
+
+answerBox.append(bubble,copyButton);
+
+row.append(avatar,answerBox);
 
 }else{
 
