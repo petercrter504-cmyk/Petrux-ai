@@ -338,6 +338,12 @@ Base current-information answers on the information retrieved.
 Do not invent search results, sources or URLs.
 If the search does not provide enough information, say so honestly.
 Use information from the live search results only for current claims.
+
+When sources are available:
+- Include accurate source references in your answer.
+- Do not invent article titles or website addresses.
+- Prefer original reporting and direct article links.
+- Make it clear when a statement is an allegation or an unverified claim.
 `;
 }
 
@@ -408,23 +414,57 @@ async function details(r) {
    SOURCE EXTRACTION
 ================================ */
 
+/*
+   Groq browser search can return source information
+   in different parts of its response.
+
+   This extractor checks:
+   - message annotations
+   - message citations
+   - message metadata
+   - search result objects
+   - nested source objects
+   - URL citation objects
+   - direct URLs in provider-returned text
+
+   It only returns actual URLs supplied by Groq.
+   It does not manufacture article links.
+*/
+
 function extractSources(data) {
   const sources = [];
   const seen = new Set();
 
   function addSource(url, title = '') {
-    if (
-      typeof url !== 'string' ||
-      !/^https?:\/\//i.test(url.trim())
-    ) {
+    if (typeof url !== 'string') return;
+
+    let cleanUrl = url.trim();
+
+    cleanUrl = cleanUrl.replace(/[),.;\]}]+$/g, '');
+
+    if (!/^https?:\/\//i.test(cleanUrl)) return;
+
+    try {
+      const parsed = new URL(cleanUrl);
+
+      if (
+        !['http:', 'https:'].includes(parsed.protocol) ||
+        !parsed.hostname ||
+        parsed.hostname.includes('localhost')
+      ) {
+        return;
+      }
+
+      cleanUrl = parsed.href;
+    } catch {
       return;
     }
 
-    const cleanUrl = url.trim();
+    const key = cleanUrl.toLowerCase();
 
-    if (seen.has(cleanUrl)) return;
+    if (seen.has(key)) return;
 
-    seen.add(cleanUrl);
+    seen.add(key);
 
     sources.push({
       title:
@@ -435,9 +475,9 @@ function extractSources(data) {
     });
   }
 
-  function scan(value, depth = 0, parentKey = '') {
+  function scan(value, depth = 0) {
     if (
-      depth > 12 ||
+      depth > 15 ||
       value === null ||
       value === undefined
     ) {
@@ -445,11 +485,7 @@ function extractSources(data) {
     }
 
     if (typeof value === 'string') {
-      /*
-       Extract URLs from strings too. This helps catch
-       source links returned inside search metadata.
-      */
-      const urls = value.match(/https?:\/\/[^\s"'<>\\]+/g);
+      const urls = value.match(/https?:\/\/[^\s"'<>\\]+/gi);
 
       if (urls) {
         urls.forEach(url => addSource(url));
@@ -460,15 +496,17 @@ function extractSources(data) {
 
     if (Array.isArray(value)) {
       for (const item of value) {
-        scan(item, depth + 1, parentKey);
+        scan(item, depth + 1);
       }
 
       return;
     }
 
-    if (typeof value !== 'object') {
-      return;
-    }
+    if (typeof value !== 'object') return;
+
+    /*
+       Check common direct URL fields.
+    */
 
     const url =
       value.url ||
@@ -477,7 +515,13 @@ function extractSources(data) {
       value.href ||
       value.source_url ||
       value.sourceUrl ||
-      value.website;
+      value.website ||
+      value.web_url ||
+      value.webUrl;
+
+    /*
+       Check common title fields.
+    */
 
     const title =
       value.title ||
@@ -486,20 +530,51 @@ function extractSources(data) {
       value.sourceTitle ||
       value.display_name ||
       value.displayName ||
+      value.page_title ||
+      value.pageTitle ||
       '';
 
-    if (url) {
+    if (typeof url === 'string') {
       addSource(url, title);
     }
 
-    for (const [key, item] of Object.entries(value)) {
-      scan(item, depth + 1, key);
+    /*
+       Some providers place the URL inside a
+       nested url_citation object.
+    */
+
+    if (
+      value.url_citation &&
+      typeof value.url_citation === 'object'
+    ) {
+      const citation = value.url_citation;
+
+      addSource(
+        citation.url,
+        citation.title || title
+      );
+    }
+
+    /*
+       Continue through all nested objects.
+    */
+
+    for (const item of Object.values(value)) {
+      if (item && typeof item === 'object') {
+        scan(item, depth + 1);
+      } else if (typeof item === 'string') {
+        /*
+           Scan text for actual URLs, but do not
+           mistake ordinary citation labels for URLs.
+        */
+        scan(item, depth + 1);
+      }
     }
   }
 
   scan(data);
 
-  return sources.slice(0, 10);
+  return sources.slice(0, 15);
 }
 
 /* ================================
@@ -537,6 +612,12 @@ async function groqRequest(messages, search, max, model, temperature) {
     ];
 
     body.tool_choice = 'required';
+
+    /*
+       Explicitly request citations from Groq.
+    */
+
+    body.citation_options = 'enabled';
   }
 
   const r = await fetch(
@@ -574,21 +655,47 @@ async function groqRequest(messages, search, max, model, temperature) {
 
   const d = await r.json();
 
-  if (search) {
-    console.log('GROQ LIVE SEARCH RESPONSE:');
-    console.log(
-      JSON.stringify(d, null, 2).slice(0, 12000)
-    );
-  }
-
   const message = d.choices?.[0]?.message || {};
   const answer = message.content;
+
+  if (search) {
+    console.log('GROQ LIVE SEARCH RESPONSE:');
+
+    /*
+       Log the response structure and citation metadata.
+       Avoid logging API keys or request headers.
+    */
+
+    console.log(
+      JSON.stringify({
+        model: d.model,
+        message: message,
+        citations: d.citations,
+        sources: d.sources
+      }, null, 2).slice(0, 18000)
+    );
+  }
 
   if (typeof answer !== 'string' || !answer.trim()) {
     throw new Error('Groq returned an empty answer.');
   }
 
-  const sources = search ? extractSources(d) : [];
+  /*
+     Scan the complete provider response, not just
+     the top-level response object.
+  */
+
+  const sources = search
+    ? extractSources({
+        response: d,
+        message,
+        annotations: message.annotations,
+        citations: message.citations,
+        metadata: message.metadata,
+        sources: d.sources,
+        references: d.references
+      })
+    : [];
 
   if (search) {
     console.log(
@@ -600,6 +707,16 @@ async function groqRequest(messages, search, max, model, temperature) {
         `Source ${index + 1}: ${source.title} - ${source.url}`
       );
     });
+
+    if (!sources.length) {
+      console.warn(
+        'Groq completed the search but returned no extractable source URLs.'
+      );
+
+      console.warn(
+        'Inspect the GROQ LIVE SEARCH RESPONSE log to confirm the actual response structure.'
+      );
+    }
   }
 
   return {
@@ -805,14 +922,6 @@ async function gemini(messages, max = 900) {
    RESPONSE GENERATION
 ================================ */
 
-/*
-   forceSearch is sent from your HTML checkbox.
-   This is important: when the user checks
-   "Search the web", Petrux will now perform
-   a live search even if the question itself
-   does not contain words like "latest" or "today".
-*/
-
 async function generate(
   messages,
   max = 900,
@@ -1011,11 +1120,6 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    /*
-       Receive the live-search setting
-       directly from your HTML checkbox.
-    */
-
     const research =
       req.body.research === true;
 
@@ -1042,16 +1146,6 @@ app.post('/api/chat', async (req, res) => {
     );
     console.log(`Request completed in ${Date.now() - started}ms`);
     console.log('--------------------------------');
-
-    /*
-       The response now includes:
-       answer
-       searched
-       sources: [{ title, url }]
-
-       Your new public/index.html will show
-       these real sources underneath the answer.
-    */
 
     res.json({
       answer: result.answer,
