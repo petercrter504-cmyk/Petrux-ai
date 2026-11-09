@@ -316,15 +316,29 @@ const SEARCH =
 
 const BROWSER_SEARCH_MODELS = [
   'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-safeguard-20b'
+  'openai/gpt-oss-120b'
 ];
+
+/*
+   Detect questions that do not identify the match or event.
+   This prevents Petrux AI from guessing what the user means.
+*/
+
+function needsClarification(message) {
+  const text = String(message || '').trim();
+
+  const vagueQuestion =
+    /^(?:please\s+)?(?:who won|who was the winner|what was the score|what were the results)(?:\s+(?:yesterday|last night|today|this morning))?[?.!\s]*$/i;
+
+  return vagueQuestion.test(text);
+}
 
 function searchContext() {
   return `
 LIVE WEB SEARCH IS ENABLED.
 
-Use the browser_search tool to research the user's question.
+You MUST use the browser_search tool to research the user's question.
+Do not answer current-information questions from memory alone.
 Base current-information answers on the information retrieved.
 Do not invent search results, sources or URLs.
 If the search does not provide enough information, say so honestly.
@@ -399,27 +413,17 @@ async function details(r) {
    GROQ AI WITH BUILT-IN BROWSER SEARCH
 ================================ */
 
-async function groq(messages, search, max = 900) {
-  if (!GROQ_API_KEY) {
-    const e = new Error('Groq API key is missing.');
-    e.status = 503;
-    throw e;
-  }
+/*
+   Make one Groq request.
 
-  if (search && !BROWSER_SEARCH_MODELS.includes(GROQ_MODEL)) {
-    const e = new Error(
-      'Live web search requires a supported Groq model. Set GROQ_MODEL to openai/gpt-oss-20b in Render.'
-    );
+   Search requests always use tool_choice: required.
+   This means a successful search response cannot silently
+   skip the browser search tool.
+*/
 
-    e.status = 503;
-    throw e;
-  }
-
-  console.log(`Groq request started. Model: ${GROQ_MODEL}`);
-  console.log(`Groq browser search: ${search ? 'ENABLED' : 'DISABLED'}`);
-
+async function groqRequest(messages, search, max, model, temperature) {
   const body = {
-    model: GROQ_MODEL,
+    model,
 
     messages: [
       {
@@ -431,12 +435,12 @@ async function groq(messages, search, max = 900) {
       ...messages
     ],
 
-    temperature: search ? 1 : 0.6,
+    temperature,
     max_completion_tokens: max,
     stream: false
   };
 
-  if (GROQ_MODEL.startsWith('openai/gpt-oss-')) {
+  if (model.startsWith('openai/gpt-oss-')) {
     body.reasoning_effort = 'low';
   }
 
@@ -466,8 +470,10 @@ async function groq(messages, search, max = 900) {
   );
 
   if (!r.ok) {
+    const message = await details(r);
+
     const e = new Error(
-      `Groq error (${r.status}): ${String(await details(r)).slice(0, 350)}`
+      `Groq error (${r.status}): ${String(message).slice(0, 350)}`
     );
 
     e.status = r.status;
@@ -488,14 +494,150 @@ async function groq(messages, search, max = 900) {
     throw new Error('Groq returned an empty answer.');
   }
 
-  console.log('Groq response successful.');
+  return answer.trim();
+}
 
-  return {
-    answer: answer.trim(),
-    provider: 'groq',
-    searched: search,
-    sources: []
-  };
+function isToolChoiceError(e) {
+  return (
+    e.status === 400 &&
+    /tool choice is required.*model did not call a tool/i.test(e.message)
+  );
+}
+
+async function groq(messages, search, max = 900) {
+  if (!GROQ_API_KEY) {
+    const e = new Error('Groq API key is missing.');
+    e.status = 503;
+    throw e;
+  }
+
+  if (search && !BROWSER_SEARCH_MODELS.includes(GROQ_MODEL)) {
+    const e = new Error(
+      'Live web search requires a supported Groq model. Set GROQ_MODEL to openai/gpt-oss-20b in Render.'
+    );
+
+    e.status = 503;
+    throw e;
+  }
+
+  console.log(`Groq request started. Model: ${GROQ_MODEL}`);
+  console.log(`Groq browser search: ${search ? 'ENABLED' : 'DISABLED'}`);
+
+  /*
+     Normal chat uses the configured model once.
+  */
+
+  if (!search) {
+    const answer = await groqRequest(
+      messages,
+      false,
+      max,
+      GROQ_MODEL,
+      0.6
+    );
+
+    console.log('Groq response successful.');
+
+    return {
+      answer,
+      provider: 'groq',
+      searched: false,
+      sources: []
+    };
+  }
+
+  /*
+     Search retry strategy:
+
+     1. Try the configured model at temperature 1.
+     2. If Groq says the model did not call the required tool,
+        retry the same model at a lower temperature.
+     3. If that fails for the same reason, try the other
+        supported browser-search model.
+
+     Every attempt still requires browser_search.
+     Petrux AI will not claim it searched if all attempts fail.
+  */
+
+  const alternateModel =
+    GROQ_MODEL === 'openai/gpt-oss-20b'
+      ? 'openai/gpt-oss-120b'
+      : 'openai/gpt-oss-20b';
+
+  const attempts = [
+    {
+      model: GROQ_MODEL,
+      temperature: 1,
+      label: 'Primary search attempt'
+    },
+    {
+      model: GROQ_MODEL,
+      temperature: 0.6,
+      label: 'Lower-temperature retry'
+    },
+    {
+      model: alternateModel,
+      temperature: 0.6,
+      label: 'Alternative search model retry'
+    }
+  ];
+
+  let lastError = null;
+
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+
+    if (i > 0 && lastError && !isToolChoiceError(lastError)) {
+      break;
+    }
+
+    console.log(
+      `${attempt.label}: ${attempt.model}, temperature ${attempt.temperature}`
+    );
+
+    try {
+      const answer = await groqRequest(
+        messages,
+        true,
+        max,
+        attempt.model,
+        attempt.temperature
+      );
+
+      console.log(
+        `Groq browser search successful using ${attempt.model}.`
+      );
+
+      return {
+        answer,
+        provider: 'groq',
+        searched: true,
+        sources: []
+      };
+
+    } catch (e) {
+      lastError = e;
+
+      console.error(
+        `${attempt.label} failed:`,
+        e.message
+      );
+
+      /*
+         Only retry the specific error where the model
+         failed to call the required browser-search tool.
+         Other errors are returned without unnecessary retries.
+      */
+
+      if (!isToolChoiceError(e)) {
+        throw e;
+      }
+    }
+  }
+
+  throw lastError || new Error(
+    'Groq could not complete the required browser search.'
+  );
 }
 
 /* ================================
@@ -577,6 +719,21 @@ async function generate(messages, max = 900) {
   const lastUserMessage =
     messages.filter(m => m.role === 'user').at(-1)?.content || '';
 
+  /*
+     Ask for more details when the question does not
+     identify which match or event the user means.
+  */
+
+  if (needsClarification(lastUserMessage)) {
+    return {
+      answer:
+        'Which match or event do you mean? Tell me the sport, teams, or competition, and I’ll look up yesterday’s result for you.',
+      provider: 'clarification',
+      searched: false,
+      sources: []
+    };
+  }
+
   const search = SEARCH.test(lastUserMessage);
 
   const quick = search ? null : instant(messages);
@@ -634,7 +791,7 @@ async function generate(messages, max = 900) {
       }
 
       const failure = new Error(
-        'Petrux AI could not complete a live web search. Please try again shortly. ' +
+        'Petrux AI could not complete a live web search after its retry attempts. Please try again shortly. ' +
         `Details: ${e.message}`
       );
 
