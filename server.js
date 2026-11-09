@@ -319,11 +319,6 @@ const BROWSER_SEARCH_MODELS = [
   'openai/gpt-oss-120b'
 ];
 
-/*
-   Detect questions that do not identify the match or event.
-   This prevents Petrux AI from guessing what the user means.
-*/
-
 function needsClarification(message) {
   const text = String(message || '').trim();
 
@@ -413,14 +408,6 @@ async function details(r) {
    GROQ AI WITH BUILT-IN BROWSER SEARCH
 ================================ */
 
-/*
-   Make one Groq request.
-
-   Search requests always use tool_choice: required.
-   This means a successful search response cannot silently
-   skip the browser search tool.
-*/
-
 async function groqRequest(messages, search, max, model, temperature) {
   const body = {
     model,
@@ -488,13 +475,124 @@ async function groqRequest(messages, search, max, model, temperature) {
   }
 
   const d = await r.json();
-  const answer = d.choices?.[0]?.message?.content;
+
+  /*
+     This logs the complete Groq response structure for
+     live-search requests so we can see exactly what the
+     browser search system returns in Render.
+  */
+
+  if (search) {
+    console.log('GROQ SEARCH RESPONSE:');
+    console.log(
+      JSON.stringify(d, null, 2).slice(0, 12000)
+    );
+  }
+
+  const message = d.choices?.[0]?.message || {};
+  const answer = message.content;
 
   if (typeof answer !== 'string' || !answer.trim()) {
     throw new Error('Groq returned an empty answer.');
   }
 
-  return answer.trim();
+  /*
+     Look through the Groq response for source URLs.
+     This is flexible so Petrux AI can collect sources
+     even if Groq returns them in different fields.
+  */
+
+  const sources = [];
+  const seen = new Set();
+
+  function addSource(url, title = '') {
+    if (
+      typeof url !== 'string' ||
+      !/^https?:\/\//i.test(url) ||
+      seen.has(url)
+    ) {
+      return;
+    }
+
+    seen.add(url);
+
+    sources.push({
+      title:
+        typeof title === 'string' && title.trim()
+          ? title.trim().slice(0, 300)
+          : url,
+      url
+    });
+  }
+
+  function scan(value, depth = 0) {
+    if (
+      depth > 8 ||
+      value === null ||
+      value === undefined
+    ) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        scan(item, depth + 1);
+      }
+
+      return;
+    }
+
+    if (typeof value !== 'object') {
+      return;
+    }
+
+    const url =
+      value.url ||
+      value.uri ||
+      value.link ||
+      value.source_url ||
+      value.sourceUrl;
+
+    const title =
+      value.title ||
+      value.name ||
+      value.source_title ||
+      value.sourceTitle ||
+      '';
+
+    if (url) {
+      addSource(url, title);
+    }
+
+    for (const [key, item] of Object.entries(value)) {
+      if (
+        [
+          'url',
+          'uri',
+          'link',
+          'source_url',
+          'sourceUrl'
+        ].includes(key)
+      ) {
+        continue;
+      }
+
+      scan(item, depth + 1);
+    }
+  }
+
+  if (search) {
+    scan(d);
+
+    console.log(
+      `Groq search sources found: ${sources.length}`
+    );
+  }
+
+  return {
+    answer: answer.trim(),
+    sources
+  };
 }
 
 function isToolChoiceError(e) {
@@ -523,12 +621,8 @@ async function groq(messages, search, max = 900) {
   console.log(`Groq request started. Model: ${GROQ_MODEL}`);
   console.log(`Groq browser search: ${search ? 'ENABLED' : 'DISABLED'}`);
 
-  /*
-     Normal chat uses the configured model once.
-  */
-
   if (!search) {
-    const answer = await groqRequest(
+    const response = await groqRequest(
       messages,
       false,
       max,
@@ -539,25 +633,12 @@ async function groq(messages, search, max = 900) {
     console.log('Groq response successful.');
 
     return {
-      answer,
+      answer: response.answer,
       provider: 'groq',
       searched: false,
-      sources: []
+      sources: response.sources || []
     };
   }
-
-  /*
-     Search retry strategy:
-
-     1. Try the configured model at temperature 1.
-     2. If Groq says the model did not call the required tool,
-        retry the same model at a lower temperature.
-     3. If that fails for the same reason, try the other
-        supported browser-search model.
-
-     Every attempt still requires browser_search.
-     Petrux AI will not claim it searched if all attempts fail.
-  */
 
   const alternateModel =
     GROQ_MODEL === 'openai/gpt-oss-20b'
@@ -596,7 +677,7 @@ async function groq(messages, search, max = 900) {
     );
 
     try {
-      const answer = await groqRequest(
+      const response = await groqRequest(
         messages,
         true,
         max,
@@ -609,10 +690,10 @@ async function groq(messages, search, max = 900) {
       );
 
       return {
-        answer,
+        answer: response.answer,
         provider: 'groq',
         searched: true,
-        sources: []
+        sources: response.sources || []
       };
 
     } catch (e) {
@@ -622,12 +703,6 @@ async function groq(messages, search, max = 900) {
         `${attempt.label} failed:`,
         e.message
       );
-
-      /*
-         Only retry the specific error where the model
-         failed to call the required browser-search tool.
-         Other errors are returned without unnecessary retries.
-      */
 
       if (!isToolChoiceError(e)) {
         throw e;
@@ -719,11 +794,6 @@ async function generate(messages, max = 900) {
   const lastUserMessage =
     messages.filter(m => m.role === 'user').at(-1)?.content || '';
 
-  /*
-     Ask for more details when the question does not
-     identify which match or event the user means.
-  */
-
   if (needsClarification(lastUserMessage)) {
     return {
       answer:
@@ -763,12 +833,6 @@ async function generate(messages, max = 900) {
       cached: true
     };
   }
-
-  /*
-     LIVE SEARCH REQUESTS MUST USE GROQ.
-     Gemini must not silently answer current-information
-     questions without a real web search.
-  */
 
   if (search) {
     if (!GROQ_API_KEY) {
@@ -928,6 +992,9 @@ app.post('/api/chat', async (req, res) => {
 
     console.log(`Response generated by: ${result.provider}`);
     console.log(`Web search used: ${result.searched}`);
+    console.log(
+      `Sources found: ${(result.sources || []).length}`
+    );
     console.log(`Request completed in ${Date.now() - started}ms`);
     console.log('--------------------------------');
 
@@ -1055,10 +1122,6 @@ app.post('/api/song', async (req, res) => {
 
 /* ================================
    PAYSTACK INITIALIZE
-
-   Supports BOTH:
-   /api/paystack/initialize
-   /api/subscription/initialize
 ================================ */
 
 app.post(
@@ -1134,10 +1197,6 @@ app.post(
 
 /* ================================
    PAYSTACK VERIFY
-
-   Supports BOTH:
-   /api/paystack/verify
-   /api/subscription/verify
 ================================ */
 
 app.post(
