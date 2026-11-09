@@ -9,360 +9,390 @@
 
 <style>
 :root{
---bg:#212121;
---side:#171717;
---panel:#2f2f2f;
---line:#3d3d3d;
---text:#ececec;
---muted:#a1a1aa;
---green:#10a37f;
+  --bg:#212121;
+  --side:#171717;
+  --panel:#2f2f2f;
+  --line:#3d3d3d;
+  --text:#ececec;
+  --muted:#a1a1aa;
+  --green:#10a37f;
 }
-
 *{box-sizing:border-box}
-
-html,body{
-height:100%;
-margin:0
-}
-
+html,body{height:100%;margin:0}
 body{
-background:var(--bg);
-color:var(--text);
-font:15px/1.55 system-ui,sans-serif
+  background:var(--bg);
+  color:var(--text);
+  font:15px/1.55 system-ui,sans-serif;
 }
-
 button,input,textarea,select{font:inherit}
-
 button{cursor:pointer;color:inherit}
 
 .app{
-height:100dvh;
-display:flex;
-overflow:hidden
+  height:100dvh;
+  display:flex;
+  overflow:hidden;
 }
 
-/* SIDEBAR */
-
 .sidebar{
-width:260px;
-flex:0 0 260px;
-background:var(--side);
-display:flex;
-flex-direction:column;
-padding:12px;
-transition:transform .2s
+  width:260px;
+  flex:0 0 260px;
+  background:var(--side);
+  display:flex;
+  flex-direction:column;
+  padding:12px;
+  transition:transform .2s;
 }
 
 .brandrow{
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:5px 4px 18px
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:5px 4px 18px;
 }
 
 .brand{
-font-weight:750;
-font-size:19px
+  font-weight:750;
+  font-size:19px;
 }
 
 .brand span{color:#aaa}
 
 .iconbtn{
-border:0;
-background:transparent;
-border-radius:9px;
-padding:9px;
-color:#c7c7c7
+  border:0;
+  background:transparent;
+  border-radius:9px;
+  padding:9px;
+  color:#c7c7c7;
 }
 
-.iconbtn:hover,.sidebtn:hover{background:#292929}
+.iconbtn:hover,.sidebtn:hover{
+  background:#292929;
+}
 
 .sidebtn{
-display:flex;
-align-items:center;
-gap:11px;
-width:100%;
-padding:11px 12px;
-border:0;
-border-radius:9px;
-background:transparent;
-text-align:left;
-color:#e6e6e6;
-font-size:14px
+  display:flex;
+  align-items:center;
+  gap:11px;
+  width:100%;
+  padding:11px 12px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  text-align:left;
+  color:#e6e6e6;
+  font-size:14px;
 }
 
 .upgrade-btn{
-margin:14px 0;
-width:100%;
-padding:12px;
-border:1px solid #7050c9;
-border-radius:12px;
-background:linear-gradient(110deg,#253b68,#56328c,#743da5);
-font-weight:750
+  margin:14px 0;
+  width:100%;
+  padding:12px;
+  border:1px solid #7050c9;
+  border-radius:12px;
+  background:linear-gradient(110deg,#253b68,#56328c,#743da5);
+  font-weight:750;
 }
 
 .sideheading{
-font-size:12px;
-color:#888;
-padding:15px 10px 8px
+  font-size:12px;
+  color:#888;
+  padding:15px 10px 8px;
 }
 
 .chatlist{
-overflow:auto;
-flex:1
+  overflow:auto;
+  flex:1;
 }
 
 .chatitem{
-display:block;
-width:100%;
-overflow:hidden;
-text-overflow:ellipsis;
-white-space:nowrap;
-text-align:left;
-padding:9px 11px;
-border:0;
-border-radius:8px;
-background:transparent;
-color:#c8c8c8;
-font-size:13px
+  display:block;
+  width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:left;
+  padding:9px 11px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#c8c8c8;
+  font-size:13px;
 }
 
 .chatitem:hover,.chatitem.active{
-background:#292929;
-color:white
+  background:#292929;
+  color:white;
 }
 
 .profile{
-display:flex;
-align-items:center;
-gap:10px;
-border-top:1px solid #303030;
-padding:13px 5px 4px;
-margin-top:10px;
-font-size:13px
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-top:1px solid #303030;
+  padding:13px 5px 4px;
+  margin-top:10px;
+  font-size:13px;
 }
 
 .avatar{
-width:32px;
-height:32px;
-border-radius:50%;
-display:grid;
-place-items:center;
-background:#356b60;
-color:white;
-font-weight:700;
-flex-shrink:0
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#356b60;
+  color:white;
+  font-weight:700;
+  flex-shrink:0;
 }
 
 .profile-info{min-width:0}
 .profile-name{font-weight:700}
-.profile-status{font-size:11px;color:#999}
-
-/* MAIN */
+.profile-status{
+  font-size:11px;
+  color:#999;
+}
 
 .main{
-min-width:0;
-flex:1;
-display:flex;
-flex-direction:column;
-position:relative
+  min-width:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  position:relative;
 }
 
 .topbar{
-height:58px;
-flex:0 0 58px;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 20px
+  height:58px;
+  flex:0 0 58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
 }
 
-.modelname{font-weight:650;font-size:16px}
-.status{font-size:12px;color:#aaa}
+.modelname{
+  font-weight:650;
+  font-size:16px;
+}
+
+.status{
+  font-size:12px;
+  color:#aaa;
+}
 
 .dot{
-display:inline-block;
-width:8px;
-height:8px;
-border-radius:50%;
-background:#b28b4d;
-margin-right:5px
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#b28b4d;
+  margin-right:5px;
 }
 
 .dot.on{background:#10a37f}
 .mobilemenu{display:none}
 
-/* PAGES */
-
 .page{
-display:none;
-flex:1;
-min-height:0;
-overflow:auto
+  display:none;
+  flex:1;
+  min-height:0;
+  overflow:auto;
 }
 
 .page.active{
-display:flex;
-flex-direction:column
+  display:flex;
+  flex-direction:column;
 }
 
-/* CHAT */
-
 .chatarea{
-flex:1;
-overflow:auto;
-padding:20px 20px 30px
+  flex:1;
+  overflow:auto;
+  padding:20px 20px 30px;
 }
 
 .welcome{
-min-height:100%;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-text-align:center;
-padding:30px
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:30px;
 }
 
 .welcome h1{
-font-size:30px;
-font-weight:600;
-margin:0 0 15px
+  font-size:30px;
+  font-weight:600;
+  margin:0 0 15px;
 }
 
 .welcome p{
-color:#aaa;
-max-width:500px;
-margin:0
+  color:#aaa;
+  max-width:500px;
+  margin:0;
 }
 
 .messages{
-max-width:790px;
-margin:0 auto;
-display:flex;
-flex-direction:column;
-gap:24px
+  max-width:790px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
 }
 
 .message{
-display:flex;
-gap:13px;
-align-items:flex-start
+  display:flex;
+  gap:13px;
+  align-items:flex-start;
 }
 
-.message.user{justify-content:flex-end}
+.message.user{
+  justify-content:flex-end;
+}
 
 .bubble{
-max-width:min(100%,690px);
-white-space:pre-wrap;
-overflow-wrap:anywhere
+  max-width:min(100%,690px);
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 
 .message.user .bubble{
-background:#303030;
-border-radius:20px;
-padding:11px 17px
+  background:#303030;
+  border-radius:20px;
+  padding:11px 17px;
 }
 
 .message.assistant .bubble{
-padding:4px 0;
-line-height:1.75
+  padding:4px 0;
+  line-height:1.75;
 }
 
-.message.assistant .avatar{background:#10a37f}
-
-/* COPY BUTTON - ADDED */
+.message.assistant .avatar{
+  background:#10a37f;
+}
 
 .copy-answer{
-margin-top:8px;
-padding:6px 10px;
-border:1px solid #4a4a4a;
-border-radius:8px;
-background:transparent;
-color:#aaa;
-font-size:12px
+  margin-top:8px;
+  padding:6px 10px;
+  border:1px solid #4a4a4a;
+  border-radius:8px;
+  background:transparent;
+  color:#aaa;
+  font-size:12px;
 }
 
 .copy-answer:hover{
-background:#333;
-color:white
+  background:#333;
+  color:white;
+}
+
+/* LIVE SEARCH SOURCES */
+
+.sources-box{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid #444;
+  border-radius:12px;
+  background:#292929;
+  max-width:690px;
+}
+
+.sources-title{
+  font-size:12px;
+  font-weight:700;
+  color:#aaa;
+  margin-bottom:8px;
+}
+
+.source-link{
+  display:block;
+  color:#7dd3fc;
+  font-size:13px;
+  padding:7px 0;
+  text-decoration:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.source-link:hover{
+  text-decoration:underline;
+  color:white;
 }
 
 .composerwrap{
-width:min(790px,calc(100% - 30px));
-margin:0 auto 16px
+  width:min(790px,calc(100% - 30px));
+  margin:0 auto 16px;
 }
 
 .composer{
-background:#303030;
-border:1px solid #454545;
-border-radius:26px;
-padding:10px 12px;
-display:flex;
-align-items:flex-end;
-gap:9px
+  background:#303030;
+  border:1px solid #454545;
+  border-radius:26px;
+  padding:10px 12px;
+  display:flex;
+  align-items:flex-end;
+  gap:9px;
 }
 
 #question{
-flex:1;
-resize:none;
-max-height:180px;
-min-height:34px;
-border:0;
-outline:0;
-background:transparent;
-color:white;
-padding:7px 4px;
-font-size:15px
+  flex:1;
+  resize:none;
+  max-height:180px;
+  min-height:34px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:white;
+  padding:7px 4px;
+  font-size:15px;
 }
 
 .round{
-width:38px;
-height:38px;
-flex:0 0 38px;
-border:0;
-border-radius:50%;
-display:grid;
-place-items:center;
-background:#555
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  border:0;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#555;
 }
 
 .round.send{
-background:#f4f4f4;
-color:#171717;
-font-size:20px;
-font-weight:700
+  background:#f4f4f4;
+  color:#171717;
+  font-size:20px;
+  font-weight:700;
 }
 
 .round:disabled{opacity:.5}
 
 .toolsrow{
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:8px 8px 0;
-color:#999;
-font-size:11px
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 8px 0;
+  color:#999;
+  font-size:11px;
 }
 
 .toolsrow label{
-display:flex;
-align-items:center;
-gap:6px
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 
 .disclaimer{
-text-align:center;
-color:#888;
-font-size:11px;
-padding:0 10px 12px
+  text-align:center;
+  color:#888;
+  font-size:11px;
+  padding:0 10px 12px;
 }
 
-/* FEATURE PAGES */
-
 .pageinner{
-width:min(790px,calc(100% - 32px));
-margin:35px auto
+  width:min(790px,calc(100% - 32px));
+  margin:35px auto;
 }
 
 .pageinner h1{font-size:27px}
@@ -371,176 +401,187 @@ margin:35px auto
 .field{margin:18px 0}
 
 .field label{
-display:block;
-font-size:13px;
-margin-bottom:8px
+  display:block;
+  font-size:13px;
+  margin-bottom:8px;
 }
 
 .field textarea,.field select{
-width:100%;
-background:#303030;
-border:1px solid #484848;
-border-radius:13px;
-padding:13px;
-color:white;
-outline:0
+  width:100%;
+  background:#303030;
+  border:1px solid #484848;
+  border-radius:13px;
+  padding:13px;
+  color:white;
+  outline:0;
 }
 
 .primary{
-background:#10a37f;
-border:0;
-color:white;
-border-radius:12px;
-padding:11px 17px;
-font-weight:650
+  background:#10a37f;
+  border:0;
+  color:white;
+  border-radius:12px;
+  padding:11px 17px;
+  font-weight:650;
 }
 
 .secondary{
-background:#333;
-border:1px solid #555;
-border-radius:12px;
-padding:10px 15px
+  background:#333;
+  border:1px solid #555;
+  border-radius:12px;
+  padding:10px 15px;
 }
 
 .result{
-margin-top:18px;
-padding:16px;
-background:#2b2b2b;
-border:1px solid #414141;
-border-radius:13px;
-white-space:pre-wrap;
-overflow-wrap:anywhere
+  margin-top:18px;
+  padding:16px;
+  background:#2b2b2b;
+  border:1px solid #414141;
+  border-radius:13px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 
 .row{
-display:flex;
-gap:10px;
-align-items:center;
-flex-wrap:wrap
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
 }
 
-/* PRO MODAL */
-
 .modal{
-display:none;
-position:fixed;
-inset:0;
-z-index:100;
-background:#000b;
-align-items:center;
-justify-content:center;
-padding:18px;
-overflow-y:auto
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:#000b;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  overflow-y:auto;
 }
 
 .modal.show{display:flex}
 
 .pro-card{
-width:min(440px,100%);
-max-height:95vh;
-overflow-y:auto;
-background:linear-gradient(145deg,#242438,#171725);
-border:1px solid #6550a5;
-border-radius:23px;
-padding:25px;
-position:relative;
-box-shadow:0 0 45px #7655ff35
+  width:min(440px,100%);
+  max-height:95vh;
+  overflow-y:auto;
+  background:linear-gradient(145deg,#242438,#171725);
+  border:1px solid #6550a5;
+  border-radius:23px;
+  padding:25px;
+  position:relative;
+  box-shadow:0 0 45px #7655ff35;
 }
 
 .close-modal{
-position:absolute;
-right:16px;
-top:13px;
-border:0;
-background:#333;
-border-radius:50%;
-width:30px;
-height:30px
+  position:absolute;
+  right:16px;
+  top:13px;
+  border:0;
+  background:#333;
+  border-radius:50%;
+  width:30px;
+  height:30px;
 }
 
-.pro-logo{font-size:40px;text-align:center}
+.pro-logo{
+  font-size:40px;
+  text-align:center;
+}
 
 .pro-title{
-text-align:center;
-font-size:27px;
-font-weight:850;
-color:#b985ff
+  text-align:center;
+  font-size:27px;
+  font-weight:850;
+  color:#b985ff;
 }
 
-.pro-description{text-align:center;color:#aaa}
+.pro-description{
+  text-align:center;
+  color:#aaa;
+}
 
 .pro-price{
-text-align:center;
-font-size:30px;
-font-weight:800;
-margin:15px
+  text-align:center;
+  font-size:30px;
+  font-weight:800;
+  margin:15px;
 }
 
-.pro-benefits{list-style:none;padding:0}
+.pro-benefits{
+  list-style:none;
+  padding:0;
+}
 
 .pro-benefits li{
-padding:9px 0;
-border-bottom:1px solid #ffffff12
+  padding:9px 0;
+  border-bottom:1px solid #ffffff12;
 }
 
 .pro-subscribe{
-width:100%;
-padding:14px;
-border:0;
-border-radius:12px;
-font-weight:800;
-background:linear-gradient(100deg,#398cff,#9a55ed);
-color:white
+  width:100%;
+  padding:14px;
+  border:0;
+  border-radius:12px;
+  font-weight:800;
+  background:linear-gradient(100deg,#398cff,#9a55ed);
+  color:white;
 }
 
-.pro-subscribe:disabled{opacity:.6;cursor:wait}
+.pro-subscribe:disabled{
+  opacity:.6;
+  cursor:wait;
+}
 
 .pro-email{
-width:100%;
-padding:13px;
-background:#303030;
-color:white;
-border:1px solid #555;
-border-radius:12px;
-outline:0
+  width:100%;
+  padding:13px;
+  background:#303030;
+  color:white;
+  border:1px solid #555;
+  border-radius:12px;
+  outline:0;
 }
 
 .payment-status{
-text-align:center;
-margin:12px 0;
-color:#aaa;
-font-size:13px;
-overflow-wrap:anywhere
+  text-align:center;
+  margin:12px 0;
+  color:#aaa;
+  font-size:13px;
+  overflow-wrap:anywhere;
 }
 
 .mobilebackdrop{display:none}
 
 @media(max-width:700px){
+  .sidebar{
+    position:fixed;
+    z-index:20;
+    inset:0 auto 0 0;
+    transform:translateX(-105%);
+    box-shadow:10px 0 40px #0008;
+  }
 
-.sidebar{
-position:fixed;
-z-index:20;
-inset:0 auto 0 0;
-transform:translateX(-105%);
-box-shadow:10px 0 40px #0008
-}
+  .sidebar.open{
+    transform:translateX(0);
+  }
 
-.sidebar.open{transform:translateX(0)}
+  .mobilebackdrop.show{
+    display:block;
+    position:fixed;
+    inset:0;
+    background:#0008;
+    z-index:19;
+  }
 
-.mobilebackdrop.show{
-display:block;
-position:fixed;
-inset:0;
-background:#0008;
-z-index:19
-}
+  .mobilemenu{display:inline-block}
 
-.mobilemenu{display:inline-block}
-
-.topbar{padding:0 12px}
-.status{display:none}
-.chatarea{padding:12px 14px 20px}
-.composerwrap{width:calc(100% - 20px)}
+  .topbar{padding:0 12px}
+  .status{display:none}
+  .chatarea{padding:12px 14px 20px}
+  .composerwrap{width:calc(100% - 20px)}
 }
 </style>
 </head>
@@ -554,8 +595,8 @@ z-index:19
 <aside class="sidebar" id="sidebar">
 
 <div class="brandrow">
-<div class="brand">Petrux <span>AI</span></div>
-<button class="iconbtn" onclick="toggleSidebar(false)">✕</button>
+  <div class="brand">Petrux <span>AI</span></div>
+  <button class="iconbtn" onclick="toggleSidebar(false)">✕</button>
 </div>
 
 <button class="sidebtn" onclick="newChat()">＋ New chat</button>
@@ -564,18 +605,18 @@ z-index:19
 <button class="sidebtn" onclick="showPage('voice')">🎙 Voice Studio</button>
 
 <button class="upgrade-btn" onclick="openPro()">
-💎 Upgrade to Petrux Pro
+  💎 Upgrade to Petrux Pro
 </button>
 
 <div class="sideheading">Recent chats</div>
 <div class="chatlist" id="chatlist"></div>
 
 <div class="profile">
-<div class="avatar">P</div>
-<div class="profile-info">
-<div class="profile-name">Petrux AI</div>
-<div class="profile-status">Created by Peter Oriorowho</div>
-</div>
+  <div class="avatar">P</div>
+  <div class="profile-info">
+    <div class="profile-name">Petrux AI</div>
+    <div class="profile-status">Created by Peter Oriorowho</div>
+  </div>
 </div>
 
 </aside>
@@ -583,17 +624,15 @@ z-index:19
 <main class="main">
 
 <header class="topbar">
+  <div class="row">
+    <button class="iconbtn mobilemenu" onclick="toggleSidebar(true)">☰</button>
+    <div class="modelname" onclick="showPage('chat')">Petrux AI</div>
+  </div>
 
-<div class="row">
-<button class="iconbtn mobilemenu" onclick="toggleSidebar(true)">☰</button>
-<div class="modelname" onclick="showPage('chat')">Petrux AI</div>
-</div>
-
-<div class="status">
-<i class="dot" id="dot"></i>
-<span id="statusText">Connecting...</span>
-</div>
-
+  <div class="status">
+    <i class="dot" id="dot"></i>
+    <span id="statusText">Connecting...</span>
+  </div>
 </header>
 
 <section class="page active" id="chat">
@@ -601,8 +640,8 @@ z-index:19
 <div class="chatarea" id="chatarea">
 
 <div class="welcome" id="welcome">
-<h1>What can I help with?</h1>
-<p>Ask Petrux anything. Get help with ideas, writing, learning and more.</p>
+  <h1>What can I help with?</h1>
+  <p>Ask Petrux anything. Get help with ideas, writing, learning and more.</p>
 </div>
 
 <div class="messages" id="messages"></div>
@@ -612,27 +651,36 @@ z-index:19
 <div class="composerwrap">
 
 <div class="composer">
+  <button class="round" onclick="showPage('images')">＋</button>
 
-<button class="round" onclick="showPage('images')">＋</button>
+  <textarea
+    id="question"
+    rows="1"
+    placeholder="Message Petrux AI..."
+  ></textarea>
 
-<textarea id="question" rows="1" placeholder="Message Petrux AI..."></textarea>
-
-<button class="round send" id="sendBtn" onclick="sendMessage()">↑</button>
-
+  <button
+    class="round send"
+    id="sendBtn"
+    onclick="sendMessage()"
+  >↑</button>
 </div>
 
 <div class="toolsrow">
-<label>
-<input type="checkbox" id="research">
-Search the web
-</label>
-<span id="chatStatus">Petrux can make mistakes. Check important information.</span>
+  <label>
+    <input type="checkbox" id="research">
+    Search the web
+  </label>
+
+  <span id="chatStatus">
+    Petrux can make mistakes. Check important information.
+  </span>
 </div>
 
 </div>
 
 <div class="disclaimer">
-AI-generated responses may be inaccurate. Verify important information.
+  AI-generated responses may be inaccurate. Verify important information.
 </div>
 
 </section>
@@ -645,7 +693,11 @@ AI-generated responses may be inaccurate. Verify important information.
 <p class="muted">Describe the image you want Petrux AI to create.</p>
 
 <div class="field">
-<textarea id="imagePrompt" rows="5" placeholder="A beautiful cinematic view of Lagos at sunset..."></textarea>
+<textarea
+  id="imagePrompt"
+  rows="5"
+  placeholder="A beautiful cinematic view of Lagos at sunset..."
+></textarea>
 </div>
 
 <button class="primary" onclick="createImage()">Generate image</button>
@@ -665,13 +717,19 @@ AI-generated responses may be inaccurate. Verify important information.
 
 <div class="field">
 <label>Song idea</label>
-<textarea id="songIdea" rows="4" placeholder="A motivational Afrobeats song about rising from nothing..."></textarea>
+
+<textarea
+  id="songIdea"
+  rows="4"
+  placeholder="A motivational Afrobeats song about rising from nothing..."
+></textarea>
 </div>
 
 <div class="row">
 
 <div class="field" style="flex:1">
 <label>Genre</label>
+
 <select id="genre">
 <option>Afrobeats</option>
 <option>Afro-fusion</option>
@@ -680,10 +738,13 @@ AI-generated responses may be inaccurate. Verify important information.
 <option>Pop</option>
 <option>Dancehall</option>
 </select>
+
 </div>
 
 <div class="field" style="flex:1">
+
 <label>Mood</label>
+
 <select id="mood">
 <option>Confident</option>
 <option>Emotional</option>
@@ -691,11 +752,14 @@ AI-generated responses may be inaccurate. Verify important information.
 <option>Motivational</option>
 <option>Joyful</option>
 </select>
-</div>
 
 </div>
 
-<button class="primary" id="songBtn" onclick="writeSong()">Write lyrics</button>
+</div>
+
+<button class="primary" id="songBtn" onclick="writeSong()">
+  Write lyrics
+</button>
 
 <div class="result" id="songResult" style="display:none"></div>
 
@@ -711,7 +775,11 @@ AI-generated responses may be inaccurate. Verify important information.
 <p class="muted">Speak your message or listen to Petrux read a reply.</p>
 
 <div class="field">
-<textarea id="voiceInput" rows="4" placeholder="Type or dictate your message..."></textarea>
+<textarea
+  id="voiceInput"
+  rows="4"
+  placeholder="Type or dictate your message..."
+></textarea>
 </div>
 
 <div class="row">
@@ -720,7 +788,9 @@ AI-generated responses may be inaccurate. Verify important information.
 <button class="secondary" onclick="speakLast()">🔊 Read answer</button>
 </div>
 
-<div class="result" id="voiceResult">Your answer will appear here.</div>
+<div class="result" id="voiceResult">
+  Your answer will appear here.
+</div>
 
 </div>
 
@@ -736,24 +806,26 @@ AI-generated responses may be inaccurate. Verify important information.
 <button class="close-modal" onclick="closePro()">✕</button>
 
 <div class="pro-logo">💎</div>
+
 <div class="pro-title">PETRUX PRO</div>
 
 <p class="pro-description">
-Unlock a more powerful Petrux AI experience.
+  Unlock a more powerful Petrux AI experience.
 </p>
 
 <div class="pro-price">
-₦1,200 <small>/ 7 days</small>
+  ₦1,200 <small>/ 7 days</small>
 </div>
 
 <div class="field">
 <label for="proEmail">Your email address</label>
+
 <input
-class="pro-email"
-id="proEmail"
-type="email"
-placeholder="Enter your email address"
-autocomplete="email"
+  class="pro-email"
+  id="proEmail"
+  type="email"
+  placeholder="Enter your email address"
+  autocomplete="email"
 >
 </div>
 
@@ -769,7 +841,7 @@ autocomplete="email"
 <div id="paymentStatus" class="payment-status"></div>
 
 <button class="pro-subscribe" onclick="subscribePro()">
-Get Petrux Pro
+  Get Petrux Pro
 </button>
 
 </div>
@@ -777,603 +849,1056 @@ Get Petrux Pro
 
 <script>
 
-const $ = id => document.getElementById(id);
+const $=id=>document.getElementById(id);
 
-let history = [];
-let busy = false;
-let lastAnswer = '';
+let history=[];
+let busy=false;
+let lastAnswer='';
 
-let chats = JSON.parse(
-localStorage.getItem('petrux_chats') || '[]'
+let chats=JSON.parse(
+  localStorage.getItem('petrux_chats')||'[]'
 );
 
-let currentChat = Date.now().toString();
+let currentChat=Date.now().toString();
+
 
 function toggleSidebar(open){
-$('sidebar').classList.toggle('open',open);
-$('backdrop').classList.toggle('show',open);
+  $('sidebar').classList.toggle('open',open);
+  $('backdrop').classList.toggle('show',open);
 }
 
-$('backdrop').onclick = () => toggleSidebar(false);
+$('backdrop').onclick=()=>toggleSidebar(false);
+
 
 function showPage(id){
+  document.querySelectorAll('.page').forEach(page=>{
+    page.classList.toggle('active',page.id===id);
+  });
 
-document.querySelectorAll('.page').forEach(page=>{
-page.classList.toggle('active',page.id===id);
-});
-
-toggleSidebar(false);
+  toggleSidebar(false);
 }
+
 
 function saveChats(){
+  localStorage.setItem(
+    'petrux_chats',
+    JSON.stringify(chats.slice(-30))
+  );
 
-localStorage.setItem(
-'petrux_chats',
-JSON.stringify(chats.slice(-30))
-);
-
-renderChats();
+  renderChats();
 }
+
 
 function renderChats(){
 
-$('chatlist').innerHTML='';
+  $('chatlist').innerHTML='';
 
-chats.slice().reverse().forEach(chat=>{
+  chats.slice().reverse().forEach(chat=>{
 
-const button=document.createElement('button');
+    const button=document.createElement('button');
 
-button.className=
-'chatitem'+
-(chat.id===currentChat?' active':'');
+    button.className=
+      'chatitem'+
+      (chat.id===currentChat?' active':'');
 
-button.textContent=chat.title||'New chat';
+    button.textContent=chat.title||'New chat';
 
-button.onclick=()=>loadChat(chat.id);
+    button.onclick=()=>loadChat(chat.id);
 
-$('chatlist').append(button);
+    $('chatlist').append(button);
 
-});
+  });
+
 }
+
 
 function newChat(){
 
-history=[];
-currentChat=Date.now().toString();
+  history=[];
 
-$('messages').innerHTML='';
-$('welcome').style.display='flex';
+  currentChat=Date.now().toString();
 
-$('chatStatus').textContent='New conversation';
+  $('messages').innerHTML='';
 
-renderChats();
-showPage('chat');
+  $('welcome').style.display='flex';
+
+  $('chatStatus').textContent='New conversation';
+
+  renderChats();
+
+  showPage('chat');
+
 }
+
 
 function loadChat(id){
 
-const chat=chats.find(item=>item.id===id);
+  const chat=chats.find(item=>item.id===id);
 
-if(!chat)return;
+  if(!chat)return;
 
-history=chat.messages||[];
-currentChat=id;
+  history=chat.messages||[];
 
-$('messages').innerHTML='';
+  currentChat=id;
 
-$('welcome').style.display=
-history.length?'none':'flex';
+  $('messages').innerHTML='';
 
-history.forEach(message=>{
-addMessage(message.role,message.content);
-});
+  $('welcome').style.display=
+    history.length?'none':'flex';
 
-renderChats();
-showPage('chat');
-}
+  history.forEach(message=>{
+    addMessage(
+      message.role,
+      message.content,
+      message.sources||[]
+    );
+  });
 
-function addMessage(role,text){
+  renderChats();
 
-$('welcome').style.display='none';
-
-const row=document.createElement('div');
-row.className='message '+role;
-
-const bubble=document.createElement('div');
-bubble.className='bubble';
-bubble.textContent=text;
-
-if(role==='assistant'){
-
-const avatar=document.createElement('div');
-avatar.className='avatar';
-avatar.textContent='P';
-
-const answerBox=document.createElement('div');
-
-const copyButton=document.createElement('button');
-copyButton.className='copy-answer';
-copyButton.textContent='📋 Copy';
-
-copyButton.onclick=async()=>{
-
-try{
-
-await navigator.clipboard.writeText(bubble.textContent);
-
-copyButton.textContent='✓ Copied!';
-
-setTimeout(()=>{
-copyButton.textContent='📋 Copy';
-},1500);
-
-}catch(error){
-
-copyButton.textContent='Copy failed';
-
-setTimeout(()=>{
-copyButton.textContent='📋 Copy';
-},1500);
+  showPage('chat');
 
 }
 
-};
 
-answerBox.append(bubble,copyButton);
+/* ================================
+   LIVE SEARCH SOURCES
+================================ */
 
-row.append(avatar,answerBox);
+function createSourcesBox(sources){
 
-}else{
+  if(!Array.isArray(sources)||!sources.length){
+    return null;
+  }
 
-row.append(bubble);
+  const unique=[];
+  const seen=new Set();
+
+  sources.forEach(source=>{
+
+    if(
+      !source||
+      !source.url||
+      seen.has(source.url)
+    ){
+      return;
+    }
+
+    seen.add(source.url);
+
+    unique.push(source);
+
+  });
+
+  if(!unique.length)return null;
+
+  const box=document.createElement('div');
+
+  box.className='sources-box';
+
+  const title=document.createElement('div');
+
+  title.className='sources-title';
+
+  title.textContent='Sources';
+
+  box.append(title);
+
+  unique.slice(0,8).forEach(source=>{
+
+    const link=document.createElement('a');
+
+    link.className='source-link';
+
+    link.href=source.url;
+
+    link.target='_blank';
+
+    link.rel='noopener noreferrer';
+
+    link.textContent=
+      source.title||source.url;
+
+    box.append(link);
+
+  });
+
+  return box;
 
 }
 
-$('messages').append(row);
 
-$('chatarea').scrollTop=
-$('chatarea').scrollHeight;
+/* ================================
+   CHAT MESSAGES
+================================ */
 
-return bubble;
+function addMessage(role,text,sources=[]){
+
+  $('welcome').style.display='none';
+
+  const row=document.createElement('div');
+
+  row.className='message '+role;
+
+  const bubble=document.createElement('div');
+
+  bubble.className='bubble';
+
+  bubble.textContent=text;
+
+  if(role==='assistant'){
+
+    const avatar=document.createElement('div');
+
+    avatar.className='avatar';
+
+    avatar.textContent='P';
+
+
+    const answerBox=document.createElement('div');
+
+    answerBox.append(bubble);
+
+
+    const sourcesBox=
+      createSourcesBox(sources);
+
+    if(sourcesBox){
+
+      answerBox.append(sourcesBox);
+
+    }
+
+
+    const copyButton=
+      document.createElement('button');
+
+    copyButton.className='copy-answer';
+
+    copyButton.textContent='📋 Copy';
+
+
+    copyButton.onclick=async()=>{
+
+      try{
+
+        await navigator.clipboard.writeText(
+          bubble.textContent
+        );
+
+        copyButton.textContent='✓ Copied!';
+
+        setTimeout(()=>{
+
+          copyButton.textContent='📋 Copy';
+
+        },1500);
+
+      }catch(error){
+
+        copyButton.textContent='Copy failed';
+
+        setTimeout(()=>{
+
+          copyButton.textContent='📋 Copy';
+
+        },1500);
+
+      }
+
+    };
+
+
+    answerBox.append(copyButton);
+
+    row.append(avatar,answerBox);
+
+  }else{
+
+    row.append(bubble);
+
+  }
+
+
+  $('messages').append(row);
+
+  $('chatarea').scrollTop=
+    $('chatarea').scrollHeight;
+
+  return bubble;
+
 }
+
+
+function addSourcesToBubble(bubble,sources){
+
+  const answerBox=bubble.parentElement;
+
+  const old=
+    answerBox.querySelector('.sources-box');
+
+  if(old)old.remove();
+
+
+  const box=createSourcesBox(sources);
+
+  if(box){
+
+    answerBox.insertBefore(
+      box,
+      answerBox.querySelector('.copy-answer')
+    );
+
+  }
+
+}
+
+
+/* ================================
+   SEND CHAT MESSAGE
+================================ */
 
 async function sendMessage(){
 
-const input=$('question');
-const text=input.value.trim();
+  const input=$('question');
 
-if(!text||busy)return;
+  const text=input.value.trim();
 
-input.value='';
-input.style.height='auto';
+  if(!text||busy)return;
 
-history.push({
-role:'user',
-content:text
-});
 
-addMessage('user',text);
+  input.value='';
 
-const bubble=addMessage('assistant','Thinking...');
+  input.style.height='auto';
 
-busy=true;
-$('sendBtn').disabled=true;
-$('chatStatus').textContent='Petrux is thinking...';
 
-try{
+  history.push({
+    role:'user',
+    content:text
+  });
 
-const response=await fetch('/api/chat',{
 
-method:'POST',
+  addMessage('user',text);
 
-headers:{
-'Content-Type':'application/json'
-},
 
-body:JSON.stringify({
-messages:history,
-research:$('research').checked
-})
+  const bubble=
+    addMessage('assistant','Thinking...');
 
-});
 
-const data=await response.json();
+  busy=true;
 
-if(!response.ok){
-throw new Error(data.error||'Could not connect to Petrux AI.');
+  $('sendBtn').disabled=true;
+
+  $('chatStatus').textContent=
+    'Petrux is thinking...';
+
+
+  try{
+
+    const response=await fetch(
+      '/api/chat',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({
+          messages:history,
+          research:$('research').checked
+        })
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error||
+        'Could not connect to Petrux AI.'
+      );
+
+    }
+
+
+    const answer=
+      data.answer||
+      'Sorry, no answer was returned.';
+
+
+    /* Get the REAL sources returned
+       by your live search backend */
+
+    const sources=
+      Array.isArray(data.sources)
+        ?data.sources
+        :[];
+
+
+    bubble.textContent=answer;
+
+
+    /* Show sources underneath answer */
+
+    addSourcesToBubble(
+      bubble,
+      sources
+    );
+
+
+    history.push({
+      role:'assistant',
+      content:answer,
+      sources:sources
+    });
+
+
+    lastAnswer=answer;
+
+
+    $('chatStatus').textContent='Ready';
+
+
+    chats=chats.filter(
+      chat=>chat.id!==currentChat
+    );
+
+
+    chats.push({
+
+      id:currentChat,
+
+      title:
+        history.find(
+          message=>message.role==='user'
+        )?.content.slice(0,36)
+        ||'New chat',
+
+      messages:[...history]
+
+    });
+
+
+    saveChats();
+
+
+  }catch(error){
+
+    console.error(error);
+
+    bubble.textContent=
+      'Sorry, there was a problem: '+
+      error.message;
+
+    $('chatStatus').textContent=
+      'Connection error';
+
+  }finally{
+
+    busy=false;
+
+    $('sendBtn').disabled=false;
+
+    input.focus();
+
+  }
+
 }
 
-const answer=data.answer||'Sorry, no answer was returned.';
 
-bubble.textContent=answer;
-
-history.push({
-role:'assistant',
-content:answer
-});
-
-lastAnswer=answer;
-
-$('chatStatus').textContent='Ready';
-
-chats=chats.filter(
-chat=>chat.id!==currentChat
-);
-
-chats.push({
-id:currentChat,
-title:history.find(message=>message.role==='user')?.content.slice(0,36)||'New chat',
-messages:[...history]
-});
-
-saveChats();
-
-}catch(error){
-
-console.error(error);
-
-bubble.textContent='Sorry, there was a problem: '+error.message;
-
-$('chatStatus').textContent='Connection error';
-
-}finally{
-
-busy=false;
-$('sendBtn').disabled=false;
-input.focus();
-
-}
-}
+/* ================================
+   SONG LAB
+================================ */
 
 async function writeSong(){
 
-const idea=$('songIdea').value.trim();
+  const idea=$('songIdea').value.trim();
 
-if(!idea){
-alert('Please enter a song idea.');
-return;
+  if(!idea){
+
+    alert('Please enter a song idea.');
+
+    return;
+
+  }
+
+
+  const result=$('songResult');
+
+  const button=$('songBtn');
+
+
+  result.style.display='block';
+
+  result.textContent=
+    'Petrux is writing your song...';
+
+
+  button.disabled=true;
+
+
+  try{
+
+    const response=await fetch(
+      '/api/song',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({
+
+          idea,
+
+          genre:$('genre').value,
+
+          mood:$('mood').value
+
+        })
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error||
+        'Song generation failed.'
+      );
+
+    }
+
+
+    result.textContent=data.lyrics;
+
+
+  }catch(error){
+
+    result.textContent=
+      'Error: '+error.message;
+
+  }finally{
+
+    button.disabled=false;
+
+  }
+
 }
 
-const result=$('songResult');
-const button=$('songBtn');
 
-result.style.display='block';
-result.textContent='Petrux is writing your song...';
-
-button.disabled=true;
-
-try{
-
-const response=await fetch('/api/song',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-idea:idea,
-genre:$('genre').value,
-mood:$('mood').value
-})
-
-});
-
-const data=await response.json();
-
-if(!response.ok){
-throw new Error(data.error||'Song generation failed.');
-}
-
-result.textContent=data.lyrics;
-
-}catch(error){
-
-result.textContent='Error: '+error.message;
-
-}finally{
-
-button.disabled=false;
-
-}
-}
+/* ================================
+   IMAGE GENERATION
+================================ */
 
 async function createImage(){
 
-const prompt=$('imagePrompt').value.trim();
+  const prompt=
+    $('imagePrompt').value.trim();
 
-if(!prompt){
-alert('Please describe the image you want.');
-return;
+
+  if(!prompt){
+
+    alert(
+      'Please describe the image you want.'
+    );
+
+    return;
+
+  }
+
+
+  const result=$('imageResult');
+
+  result.style.display='block';
+
+  result.textContent=
+    'Checking image generation...';
+
+
+  try{
+
+    const response=await fetch(
+      '/api/image',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({prompt})
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error||
+        'Image generation failed.'
+      );
+
+    }
+
+
+    result.textContent=
+      data.message||
+      'Image created.';
+
+
+  }catch(error){
+
+    result.textContent=
+      '🎨 '+error.message;
+
+  }
+
 }
 
-const result=$('imageResult');
 
-result.style.display='block';
-result.textContent='Checking image generation...';
-
-try{
-
-const response=await fetch('/api/image',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({prompt})
-
-});
-
-const data=await response.json();
-
-if(!response.ok){
-throw new Error(data.error||'Image generation failed.');
-}
-
-result.textContent=data.message||'Image created.';
-
-}catch(error){
-
-result.textContent='🎨 '+error.message;
-
-}
-}
+/* ================================
+   VOICE STUDIO
+================================ */
 
 async function askVoice(){
 
-const text=$('voiceInput').value.trim();
+  const text=
+    $('voiceInput').value.trim();
 
-if(!text){
-alert('Please enter a message.');
-return;
+
+  if(!text){
+
+    alert('Please enter a message.');
+
+    return;
+
+  }
+
+
+  const result=$('voiceResult');
+
+  result.textContent=
+    'Petrux is thinking...';
+
+
+  try{
+
+    const response=await fetch(
+      '/api/chat',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({
+          message:text
+        })
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error||
+        'Could not get a response.'
+      );
+
+    }
+
+
+    lastAnswer=data.answer;
+
+    result.textContent=lastAnswer;
+
+
+  }catch(error){
+
+    result.textContent=
+      'Error: '+error.message;
+
+  }
+
 }
 
-const result=$('voiceResult');
-
-result.textContent='Petrux is thinking...';
-
-try{
-
-const response=await fetch('/api/chat',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-message:text
-})
-
-});
-
-const data=await response.json();
-
-if(!response.ok){
-throw new Error(data.error||'Could not get a response.');
-}
-
-lastAnswer=data.answer;
-result.textContent=lastAnswer;
-
-}catch(error){
-
-result.textContent='Error: '+error.message;
-
-}
-}
 
 function startDictation(){
 
-const Recognition=
-window.SpeechRecognition||
-window.webkitSpeechRecognition;
+  const Recognition=
+    window.SpeechRecognition||
+    window.webkitSpeechRecognition;
 
-if(!Recognition){
-alert('Voice dictation is not supported by this browser.');
-return;
+
+  if(!Recognition){
+
+    alert(
+      'Voice dictation is not supported by this browser.'
+    );
+
+    return;
+
+  }
+
+
+  const recognition=
+    new Recognition();
+
+
+  recognition.lang='en-US';
+
+
+  recognition.onresult=event=>{
+
+    $('voiceInput').value=
+      event.results[0][0].transcript;
+
+  };
+
+
+  recognition.start();
+
 }
 
-const recognition=new Recognition();
-
-recognition.lang='en-US';
-
-recognition.onresult=function(event){
-$('voiceInput').value=event.results[0][0].transcript;
-};
-
-recognition.start();
-}
 
 function speakLast(){
 
-if(!lastAnswer){
-alert('There is no answer to read yet.');
-return;
+  if(!lastAnswer){
+
+    alert('There is no answer to read yet.');
+
+    return;
+
+  }
+
+
+  speechSynthesis.cancel();
+
+
+  const speech=
+    new SpeechSynthesisUtterance(
+      lastAnswer
+    );
+
+
+  speech.rate=1;
+
+
+  speechSynthesis.speak(speech);
+
 }
 
-speechSynthesis.cancel();
 
-const speech=new SpeechSynthesisUtterance(lastAnswer);
-
-speech.rate=1;
-
-speechSynthesis.speak(speech);
-}
+/* ================================
+   PETRUX PRO
+================================ */
 
 function openPro(){
-$('proModal').classList.add('show');
+
+  $('proModal').classList.add('show');
+
 }
 
+
 function closePro(){
-$('proModal').classList.remove('show');
+
+  $('proModal').classList.remove('show');
+
 }
+
 
 async function subscribePro(){
 
-const email=$('proEmail').value.trim();
-const button=document.querySelector('.pro-subscribe');
-const status=$('paymentStatus');
+  const email=
+    $('proEmail').value.trim();
 
-if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
 
-status.textContent='Please enter a valid email address.';
-status.style.color='#ff7777';
+  const button=
+    document.querySelector('.pro-subscribe');
 
-return;
+
+  const status=
+    $('paymentStatus');
+
+
+  if(
+    !email||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ){
+
+    status.textContent=
+      'Please enter a valid email address.';
+
+    status.style.color='#ff7777';
+
+    return;
+
+  }
+
+
+  button.disabled=true;
+
+  button.textContent=
+    'Connecting to Paystack...';
+
+
+  status.textContent=
+    'Preparing your secure payment...';
+
+  status.style.color='#aaa';
+
+
+  try{
+
+    const response=await fetch(
+      '/api/paystack/initialize',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({email})
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        data.error||
+        'Payment could not be started.'
+      );
+
+    }
+
+
+    if(!data.authorization_url){
+
+      throw new Error(
+        'Paystack did not return a checkout link.'
+      );
+
+    }
+
+
+    window.location.href=
+      data.authorization_url;
+
+
+  }catch(error){
+
+    status.textContent=
+      error.message;
+
+    status.style.color='#ff7777';
+
+    button.disabled=false;
+
+    button.textContent=
+      'Get Petrux Pro';
+
+  }
+
 }
 
-button.disabled=true;
-button.textContent='Connecting to Paystack...';
-
-status.textContent='Preparing your secure payment...';
-status.style.color='#aaa';
-
-try{
-
-const response=await fetch('/api/paystack/initialize',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-email:email
-})
-
-});
-
-const data=await response.json();
-
-if(!response.ok){
-throw new Error(data.error||'Payment could not be started.');
-}
-
-if(!data.authorization_url){
-throw new Error('Paystack did not return a checkout link.');
-}
-
-window.location.href=data.authorization_url;
-
-}catch(error){
-
-status.textContent=error.message;
-status.style.color='#ff7777';
-
-button.disabled=false;
-button.textContent='Get Petrux Pro';
-
-}
-}
 
 async function verifyReturnedPayment(){
 
-const params=new URLSearchParams(window.location.search);
+  const params=
+    new URLSearchParams(
+      window.location.search
+    );
 
-const reference=params.get('reference');
 
-if(!reference){
-return;
+  const reference=
+    params.get('reference');
+
+
+  if(!reference)return;
+
+
+  const status=
+    $('paymentStatus');
+
+
+  $('proModal').classList.add('show');
+
+
+  status.textContent=
+    'Verifying your payment...';
+
+
+  status.style.color='#aaa';
+
+
+  try{
+
+    const response=await fetch(
+      '/api/paystack/verify',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify({
+          reference
+        })
+
+      }
+    );
+
+
+    const data=await response.json();
+
+
+    if(!response.ok||!data.verified){
+
+      throw new Error(
+        data.error||
+        'Payment could not be verified.'
+      );
+
+    }
+
+
+    status.textContent=
+      'Payment successful! Your Petrux Pro payment has been verified.';
+
+    status.style.color='#10a37f';
+
+
+  }catch(error){
+
+    status.textContent=
+      error.message;
+
+    status.style.color='#ff7777';
+
+  }finally{
+
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+
+  }
+
 }
 
-const status=$('paymentStatus');
 
-$('proModal').classList.add('show');
+/* ================================
+   CHAT INPUT
+================================ */
 
-status.textContent='Verifying your payment...';
-status.style.color='#aaa';
+$('question').addEventListener(
+  'input',
+  function(){
 
-try{
+    this.style.height='auto';
 
-const response=await fetch('/api/paystack/verify',{
+    this.style.height=
+      Math.min(
+        this.scrollHeight,
+        180
+      )+'px';
 
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify({
-reference:reference
-})
-
-});
-
-const data=await response.json();
-
-if(!response.ok||!data.verified){
-throw new Error(data.error||'Payment could not be verified.');
-}
-
-status.textContent='Payment successful! Your Petrux Pro payment has been verified.';
-status.style.color='#10a37f';
-
-}catch(error){
-
-status.textContent=error.message;
-status.style.color='#ff7777';
-
-}finally{
-
-window.history.replaceState(
-{},
-document.title,
-window.location.pathname
+  }
 );
 
-}
-}
 
-$('question').addEventListener('input',function(){
+$('question').addEventListener(
+  'keydown',
+  function(event){
 
-this.style.height='auto';
+    if(
+      event.key==='Enter'&&
+      !event.shiftKey
+    ){
 
-this.style.height=
-Math.min(this.scrollHeight,180)+'px';
+      event.preventDefault();
 
-});
+      sendMessage();
 
-$('question').addEventListener('keydown',function(event){
+    }
 
-if(event.key==='Enter'&&!event.shiftKey){
+  }
+);
 
-event.preventDefault();
-sendMessage();
 
-}
-
-});
+/* ================================
+   SERVER STATUS
+================================ */
 
 async function checkStatus(){
 
-try{
+  try{
 
-const response=await fetch('/api/status');
-const data=await response.json();
+    const response=
+      await fetch('/api/status');
 
-if(data.online){
 
-$('dot').classList.add('on');
-$('statusText').textContent='Online';
+    const data=
+      await response.json();
+
+
+    if(data.online){
+
+      $('dot').classList.add('on');
+
+      $('statusText').textContent=
+        'Online';
+
+    }
+
+  }catch(error){
+
+    $('dot').classList.remove('on');
+
+    $('statusText').textContent=
+      'Offline';
+
+  }
 
 }
 
-}catch(error){
 
-$('dot').classList.remove('on');
-$('statusText').textContent='Offline';
-
-}
-}
+/* ================================
+   START PETRUX AI
+================================ */
 
 renderChats();
+
 checkStatus();
+
 verifyReturnedPayment();
 
 setInterval(checkStatus,30000);
