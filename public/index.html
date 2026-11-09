@@ -1,257 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Petrux AI</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: #212121;
+  color: #ececec;
+  font-family: Arial, sans-serif;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  height: 60px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #363636;
+  background: #171717;
+}
+
+.logo {
+  font-size: 19px;
+  font-weight: bold;
+}
+
+.logo span {
+  color: #10a37f;
+}
+
+.status {
+  margin-left: auto;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.status.online {
+  color: #10a37f;
+}
+
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 25px 15px 130px;
+}
+
+.welcome {
+  text-align: center;
+  margin: 100px auto 30px;
+}
+
+.welcome h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.welcome p {
+  color: #aaa;
+}
+
+.messages {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.message {
+  display: flex;
+  margin: 20px 0;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 13px 17px;
+  border-radius: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.user .bubble {
+  background: #303030;
+}
+
+.assistant .bubble {
+  background: transparent;
+  padding-left: 0;
+}
+
+.composer-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px;
+  background: linear-gradient(
+    transparent,
+    #212121 25%
+  );
+}
+
+.composer {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px;
+  background: #303030;
+  border: 1px solid #444;
+  border-radius: 22px;
+}
+
+textarea {
+  flex: 1;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: white;
+  padding: 8px;
+  min-height: 42px;
+  max-height: 160px;
+  font-size: 16px;
+}
+
+textarea::placeholder {
+  color: #999;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.send {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f1f1f1;
+  color: #171717;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.note {
+  text-align: center;
+  color: #777;
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .welcome {
+    margin-top: 70px;
+  }
+
+  .welcome h1 {
+    font-size: 27px;
+  }
+
+  .bubble {
+    max-width: 90%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+<div class="logo">
+Petrux <span>AI</span>
+</div>
+
+<div class="status" id="status">
+Connecting...
+</div>
+</header>
+
+<main id="chatArea">
+
+<div class="welcome" id="welcome">
+<h1>What can I help with?</h1>
+<p>
+Ask Petrux anything. Get help with writing,
+ideas, learning, business and more.
+</p>
+</div>
+
+<div class="messages" id="messages"></div>
+
+</main>
+
+<div class="composer-area">
+
+<div class="composer">
+
+<textarea
+id="question"
+rows="1"
+placeholder="Message Petrux AI..."
+></textarea>
+
+<button
+class="send"
+id="sendButton"
+onclick="sendMessage()"
+>
+↑
+</button>
+
+</div>
+
+<div class="note">
+Petrux AI can make mistakes. Check important information.
+</div>
+
+</div>
+
+</div>
+
 <script>
-const $ = id => document.getElementById(id);
+const question =
+  document.getElementById('question');
+
+const messages =
+  document.getElementById('messages');
+
+const welcome =
+  document.getElementById('welcome');
+
+const sendButton =
+  document.getElementById('sendButton');
+
+const status =
+  document.getElementById('status');
+
+const chatArea =
+  document.getElementById('chatArea');
 
 let history = [];
 let busy = false;
-let lastAnswer = '';
-
-let chats = JSON.parse(
-  localStorage.getItem('petrux_chats') || '[]'
-);
-
-let currentChat = Date.now().toString();
-let isPro = false;
-
-/* =========================================
-   PRO STATUS
-========================================= */
-
-function updateProBadge(active) {
-  isPro = Boolean(active);
-
-  $('profileBadge').style.display =
-    isPro ? 'inline-flex' : 'none';
-
-  $('profileAvatar').classList.toggle('pro', isPro);
-
-  $('profileStatus').textContent = isPro
-    ? '💎 Petrux Pro Member'
-    : 'Created by Peter Oriorowho';
-
-  $('profileName').textContent = 'Petrux AI';
-}
-
-async function checkProStatus() {
-  try {
-    const token = localStorage.getItem(
-      'petrux_pro_token'
-    );
-
-    const headers = {};
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(
-      '/api/subscription/status',
-      { headers }
-    );
-
-    if (!response.ok) {
-      return;
-    }
-
-    const data = await response.json();
-
-    updateProBadge(data.active === true);
-  } catch (error) {
-    console.log('Subscription status unavailable.');
-  }
-}
-
-function openPro() {
-  $('proModal').classList.add('show');
-}
-
-function closePro() {
-  $('proModal').classList.remove('show');
-}
-
-async function subscribePro() {
-  const email = prompt(
-    'Enter your email address for Petrux Pro:'
-  );
-
-  if (!email) {
-    return;
-  }
-
-  const button = document.querySelector(
-    '.pro-subscribe'
-  );
-
-  button.disabled = true;
-
-  $('proNote').textContent =
-    'Preparing secure payment...';
-
-  try {
-    const response = await fetch(
-      '/api/subscription/initialize',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error || 'Could not start payment.'
-      );
-    }
-
-    if (data.authorization_url) {
-      window.location.href =
-        data.authorization_url;
-      return;
-    }
-
-    throw new Error(
-      'Payment link was not received.'
-    );
-  } catch (error) {
-    $('proNote').textContent =
-      error.message || 'Payment could not be started.';
-
-    button.disabled = false;
-  }
-}
-
-/* =========================================
-   NAVIGATION
-========================================= */
-
-function toggleSidebar(open) {
-  $('sidebar').classList.toggle('open', open);
-  $('backdrop').classList.toggle('show', open);
-}
-
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(page => {
-    page.classList.toggle(
-      'active',
-      page.id === id
-    );
-  });
-
-  toggleSidebar(false);
-}
-
-function saveChats() {
-  localStorage.setItem(
-    'petrux_chats',
-    JSON.stringify(chats.slice(-30))
-  );
-
-  renderChats();
-}
-
-function renderChats() {
-  $('chatlist').innerHTML = '';
-
-  chats.slice().reverse().forEach(chat => {
-    const button = document.createElement('button');
-
-    button.className =
-      'chatitem' +
-      (
-        chat.id === currentChat
-          ? ' active'
-          : ''
-      );
-
-    button.textContent =
-      chat.title || 'New chat';
-
-    button.onclick = () =>
-      loadChat(chat.id);
-
-    $('chatlist').append(button);
-  });
-}
-
-function newChat() {
-  if (history.length) {
-    chats = chats.filter(
-      chat => chat.id !== currentChat
-    );
-
-    chats.push({
-      id: currentChat,
-      title:
-        history.find(
-          message => message.role === 'user'
-        )?.content.slice(0, 36) ||
-        'New chat',
-      messages: history
-    });
-  }
-
-  history = [];
-  currentChat = Date.now().toString();
-
-  $('messages').innerHTML = '';
-
-  $('welcome').style.display = 'flex';
-
-  $('chatStatus').textContent =
-    'New conversation';
-
-  saveChats();
-  showPage('chat');
-}
-
-function loadChat(id) {
-  const chat = chats.find(
-    item => item.id === id
-  );
-
-  if (!chat) {
-    return;
-  }
-
-  history = chat.messages || [];
-  currentChat = id;
-
-  $('messages').innerHTML = '';
-
-  $('welcome').style.display =
-    history.length ? 'none' : 'flex';
-
-  history.forEach(message => {
-    addMessage(
-      message.role,
-      message.content
-    );
-  });
-
-  renderChats();
-  showPage('chat');
-}
-
-/* =========================================
-   CHAT
-========================================= */
 
 function addMessage(role, text) {
-  $('welcome').style.display = 'none';
+  welcome.style.display = 'none';
 
-  const row = document.createElement('div');
+  const row =
+    document.createElement('div');
 
   row.className =
     'message ' + role;
-
-  const avatar =
-    document.createElement('div');
-
-  avatar.className = 'avatar';
-  avatar.textContent = 'P';
 
   const bubble =
     document.createElement('div');
@@ -259,31 +284,30 @@ function addMessage(role, text) {
   bubble.className = 'bubble';
   bubble.textContent = text;
 
-  if (role === 'assistant') {
-    row.append(avatar, bubble);
-  } else {
-    row.append(bubble);
-  }
+  row.appendChild(bubble);
 
-  $('messages').append(row);
+  messages.appendChild(row);
 
-  $('chatarea').scrollTop =
-    $('chatarea').scrollHeight;
+  chatArea.scrollTop =
+    chatArea.scrollHeight;
 
   return bubble;
 }
 
 async function sendMessage() {
-  const input = $('question');
-
-  const text = input.value.trim();
+  const text =
+    question.value.trim();
 
   if (!text || busy) {
     return;
   }
 
-  input.value = '';
-  input.style.height = 'auto';
+  busy = true;
+
+  sendButton.disabled = true;
+
+  question.value = '';
+  question.style.height = 'auto';
 
   history.push({
     role: 'user',
@@ -292,431 +316,11 @@ async function sendMessage() {
 
   addMessage('user', text);
 
-  const bubble =
-    addMessage('assistant', 'Thinking…');
-
-  busy = true;
-
-  $('sendBtn').disabled = true;
-
-  $('chatStatus').textContent =
-    'Petrux is thinking…';
-
-  let answer = '';
-  let completed = false;
-
-  try {
-    const response = await fetch(
-      '/api/chat/stream',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: history,
-          research: $('research').checked
-        })
-      }
+  const answerBubble =
+    addMessage(
+      'assistant',
+      'Thinking...'
     );
-
-    if (!response.ok) {
-      let errorData = {};
-
-      try {
-        errorData =
-          await response.json();
-      } catch (error) {}
-
-      throw new Error(
-        errorData.error ||
-        'Could not connect to Petrux AI.'
-      );
-    }
-
-    if (!response.body) {
-      throw new Error(
-        'No response stream received.'
-      );
-    }
-
-    const reader =
-      response.body.getReader();
-
-    const decoder =
-      new TextDecoder();
-
-    let buffer = '';
-
-    while (true) {
-      const result =
-        await reader.read();
-
-      if (result.done) {
-        break;
-      }
-
-      buffer += decoder.decode(
-        result.value,
-        { stream: true }
-      );
-
-      const frames =
-        buffer.split('\n\n');
-
-      buffer = frames.pop() || '';
-
-      for (const frame of frames) {
-        const line =
-          frame
-            .split('\n')
-            .find(item =>
-              item.startsWith('data: ')
-            );
-
-        if (!line) {
-          continue;
-        }
-
-        let event;
-
-        try {
-          event = JSON.parse(
-            line.slice(6)
-          );
-        } catch (error) {
-          continue;
-        }
-
-        /*
-         * This matches your server.js:
-         *
-         * data: {"token":"Hello"}
-         * data: {"done":true}
-         */
-
-        if (
-          typeof event.token === 'string'
-        ) {
-          if (!answer) {
-            bubble.textContent = '';
-          }
-
-          answer += event.token;
-
-          bubble.textContent = answer;
-
-          $('chatarea').scrollTop =
-            $('chatarea').scrollHeight;
-        }
-
-        if (event.done === true) {
-          completed = true;
-        }
-
-        if (event.error) {
-          throw new Error(event.error);
-        }
-      }
-    }
-
-    if (!completed && !answer) {
-      throw new Error(
-        'Connection ended before receiving an answer.'
-      );
-    }
-
-    if (!answer) {
-      answer =
-        'Sorry, Petrux AI did not return a response.';
-    }
-
-    bubble.textContent = answer;
-
-    history.push({
-      role: 'assistant',
-      content: answer
-    });
-
-    lastAnswer = answer;
-
-    $('chatStatus').textContent =
-      'Ready';
-
-    chats = chats.filter(
-      chat => chat.id !== currentChat
-    );
-
-    chats.push({
-      id: currentChat,
-      title:
-        history.find(
-          message => message.role === 'user'
-        )?.content.slice(0, 36) ||
-        'New chat',
-      messages: history
-    });
-
-    saveChats();
-
-  } catch (error) {
-    console.error(
-      'Chat error:',
-      error
-    );
-
-    bubble.textContent = answer
-      ? answer +
-        '\n\n[Connection issue: ' +
-        error.message +
-        ']'
-      : 'Sorry, I could not get a reply. ' +
-        error.message;
-
-    $('chatStatus').textContent =
-      'Connection error';
-  } finally {
-    busy = false;
-
-    $('sendBtn').disabled = false;
-
-    input.focus();
-  }
-}
-
-/* =========================================
-   IMAGE GENERATION
-========================================= */
-
-async function createImage() {
-  const prompt =
-    $('imagePrompt').value.trim();
-
-  if (!prompt) {
-    alert(
-      'Please describe the image you want.'
-    );
-    return;
-  }
-
-  if (!isPro) {
-    openPro();
-    return;
-  }
-
-  const button = $('imageBtn');
-  const result = $('imageResult');
-
-  button.disabled = true;
-  button.textContent = 'Generating…';
-
-  result.style.display = 'block';
-  result.textContent =
-    'Creating your image…';
-
-  try {
-    const token = localStorage.getItem(
-      'petrux_pro_token'
-    );
-
-    const response = await fetch(
-      '/api/images',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:
-            `Bearer ${token || ''}`
-        },
-        body: JSON.stringify({ prompt })
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-        'Image generation failed.'
-      );
-    }
-
-    result.textContent =
-      data.message ||
-      'Image generated successfully.';
-  } catch (error) {
-    result.textContent =
-      error.message;
-  } finally {
-    button.disabled = false;
-    button.textContent =
-      'Generate image';
-  }
-}
-
-/* =========================================
-   SONG LAB
-========================================= */
-
-async function writeSong() {
-  const idea =
-    $('songIdea').value.trim();
-
-  const genre =
-    $('genre').value;
-
-  const mood =
-    $('mood').value;
-
-  if (!idea) {
-    alert(
-      'Please enter a song idea.'
-    );
-    return;
-  }
-
-  const button = $('songBtn');
-  const result = $('songResult');
-
-  button.disabled = true;
-  button.textContent =
-    'Writing…';
-
-  result.style.display = 'block';
-  result.textContent =
-    'Petrux is writing your song…';
-
-  try {
-    const response = await fetch(
-      '/api/song',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json'
-        },
-        body: JSON.stringify({
-          prompt:
-            `Genre: ${genre}\n` +
-            `Mood: ${mood}\n` +
-            `Idea: ${idea}`
-        })
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-        'Song generation failed.'
-      );
-    }
-
-    result.textContent =
-      data.lyrics ||
-      'No lyrics were returned.';
-  } catch (error) {
-    result.textContent =
-      'Error: ' + error.message;
-  } finally {
-    button.disabled = false;
-    button.textContent =
-      'Write lyrics';
-  }
-}
-
-async function makeTrack() {
-  if (!isPro) {
-    openPro();
-    return;
-  }
-
-  const prompt =
-    $('musicPrompt').value.trim();
-
-  if (!prompt) {
-    alert(
-      'Please describe the song you want.'
-    );
-    return;
-  }
-
-  const button = $('trackBtn');
-  const result = $('trackResult');
-
-  button.disabled = true;
-  button.textContent =
-    'Generating…';
-
-  result.style.display = 'block';
-  result.textContent =
-    'Preparing your full song…';
-
-  try {
-    const token = localStorage.getItem(
-      'petrux_pro_token'
-    );
-
-    const response = await fetch(
-      '/api/song-audio',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':
-            'application/json',
-          Authorization:
-            `Bearer ${token || ''}`
-        },
-        body: JSON.stringify({ prompt })
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-        'Song generation failed.'
-      );
-    }
-
-    result.textContent =
-      data.message ||
-      'Your song is ready.';
-  } catch (error) {
-    result.textContent =
-      error.message;
-  } finally {
-    button.disabled = false;
-    button.textContent =
-      'Generate full song';
-  }
-}
-
-/* =========================================
-   VOICE
-========================================= */
-
-async function askVoice() {
-  const input =
-    $('voiceInput').value.trim();
-
-  if (!input) {
-    alert(
-      'Please enter a message first.'
-    );
-    return;
-  }
-
-  const result =
-    $('voiceResult');
-
-  result.textContent =
-    'Petrux is thinking…';
 
   try {
     const response = await fetch(
@@ -728,7 +332,7 @@ async function askVoice() {
             'application/json'
         },
         body: JSON.stringify({
-          message: input
+          messages: history
         })
       }
     );
@@ -743,93 +347,33 @@ async function askVoice() {
       );
     }
 
-    lastAnswer = data.answer || '';
+    const answer =
+      data.answer ||
+      'Sorry, no answer was returned.';
 
-    result.textContent =
-      lastAnswer || 'No answer received.';
+    answerBubble.textContent = answer;
+
+    history.push({
+      role: 'assistant',
+      content: answer
+    });
+
   } catch (error) {
-    result.textContent =
-      'Error: ' + error.message;
+    console.error(error);
+
+    answerBubble.textContent =
+      'Sorry, there was a problem: ' +
+      error.message;
+  } finally {
+    busy = false;
+
+    sendButton.disabled = false;
+
+    question.focus();
   }
 }
 
-function startDictation() {
-  const Recognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
-
-  if (!Recognition) {
-    alert(
-      'Voice dictation is not supported by this browser.'
-    );
-    return;
-  }
-
-  const recognition =
-    new Recognition();
-
-  recognition.lang = 'en-US';
-
-  recognition.onresult =
-    function (event) {
-      $('voiceInput').value =
-        event.results[0][0].transcript;
-    };
-
-  recognition.onerror =
-    function () {
-      alert(
-        'Voice recognition could not start.'
-      );
-    };
-
-  recognition.start();
-}
-
-function speakLast() {
-  if (!lastAnswer) {
-    alert(
-      'There is no answer to read yet.'
-    );
-    return;
-  }
-
-  if (!('speechSynthesis' in window)) {
-    alert(
-      'Text-to-speech is not supported by this browser.'
-    );
-    return;
-  }
-
-  speechSynthesis.cancel();
-
-  const speech =
-    new SpeechSynthesisUtterance(
-      lastAnswer
-    );
-
-  speech.rate = 1;
-  speechSynthesis.speak(speech);
-}
-
-/* =========================================
-   KEYBOARD AND AUTO RESIZE
-========================================= */
-
-$('question').addEventListener(
-  'input',
-  function () {
-    this.style.height = 'auto';
-
-    this.style.height =
-      Math.min(
-        this.scrollHeight,
-        180
-      ) + 'px';
-  }
-);
-
-$('question').addEventListener(
+question.addEventListener(
   'keydown',
   function (event) {
     if (
@@ -842,44 +386,41 @@ $('question').addEventListener(
   }
 );
 
-/* =========================================
-   SERVER STATUS
-========================================= */
+question.addEventListener(
+  'input',
+  function () {
+    this.style.height = 'auto';
+
+    this.style.height =
+      Math.min(
+        this.scrollHeight,
+        160
+      ) + 'px';
+  }
+);
 
 async function checkStatus() {
   try {
-    const response = await fetch(
-      '/api/status'
-    );
+    const response =
+      await fetch('/api/status');
 
-    if (!response.ok) {
-      throw new Error();
+    const data =
+      await response.json();
+
+    if (data.online) {
+      status.textContent =
+        '● Online';
+
+      status.classList.add('online');
     }
-
-    await response.json();
-
-    $('dot').classList.add('on');
-
-    $('statusText').textContent =
-      'Online';
   } catch (error) {
-    $('dot').classList.remove('on');
-
-    $('statusText').textContent =
-      'Offline';
+    status.textContent =
+      '● Offline';
   }
 }
 
-/* =========================================
-   START APP
-========================================= */
-
-renderChats();
 checkStatus();
-checkProStatus();
-
-setInterval(
-  checkStatus,
-  30000
-);
 </script>
+
+</body>
+</html>
