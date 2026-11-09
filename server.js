@@ -414,23 +414,6 @@ async function details(r) {
    SOURCE EXTRACTION
 ================================ */
 
-/*
-   Groq browser search can return source information
-   in different parts of its response.
-
-   This extractor checks:
-   - message annotations
-   - message citations
-   - message metadata
-   - search result objects
-   - nested source objects
-   - URL citation objects
-   - direct URLs in provider-returned text
-
-   It only returns actual URLs supplied by Groq.
-   It does not manufacture article links.
-*/
-
 function extractSources(data) {
   const sources = [];
   const seen = new Set();
@@ -504,10 +487,6 @@ function extractSources(data) {
 
     if (typeof value !== 'object') return;
 
-    /*
-       Check common direct URL fields.
-    */
-
     const url =
       value.url ||
       value.uri ||
@@ -518,10 +497,6 @@ function extractSources(data) {
       value.website ||
       value.web_url ||
       value.webUrl;
-
-    /*
-       Check common title fields.
-    */
 
     const title =
       value.title ||
@@ -538,11 +513,6 @@ function extractSources(data) {
       addSource(url, title);
     }
 
-    /*
-       Some providers place the URL inside a
-       nested url_citation object.
-    */
-
     if (
       value.url_citation &&
       typeof value.url_citation === 'object'
@@ -555,18 +525,10 @@ function extractSources(data) {
       );
     }
 
-    /*
-       Continue through all nested objects.
-    */
-
     for (const item of Object.values(value)) {
       if (item && typeof item === 'object') {
         scan(item, depth + 1);
       } else if (typeof item === 'string') {
-        /*
-           Scan text for actual URLs, but do not
-           mistake ordinary citation labels for URLs.
-        */
         scan(item, depth + 1);
       }
     }
@@ -612,12 +574,6 @@ async function groqRequest(messages, search, max, model, temperature) {
     ];
 
     body.tool_choice = 'required';
-
-    /*
-       Explicitly request citations from Groq.
-    */
-
-    body.citation_options = 'enabled';
   }
 
   const r = await fetch(
@@ -661,11 +617,6 @@ async function groqRequest(messages, search, max, model, temperature) {
   if (search) {
     console.log('GROQ LIVE SEARCH RESPONSE:');
 
-    /*
-       Log the response structure and citation metadata.
-       Avoid logging API keys or request headers.
-    */
-
     console.log(
       JSON.stringify({
         model: d.model,
@@ -679,11 +630,6 @@ async function groqRequest(messages, search, max, model, temperature) {
   if (typeof answer !== 'string' || !answer.trim()) {
     throw new Error('Groq returned an empty answer.');
   }
-
-  /*
-     Scan the complete provider response, not just
-     the top-level response object.
-  */
 
   const sources = search
     ? extractSources({
