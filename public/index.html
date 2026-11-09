@@ -979,6 +979,8 @@ function createSourcesBox(sources){
     if(
       !source||
       !source.url||
+      typeof source.url!=='string'||
+      !/^https?:\/\//i.test(source.url)||
       seen.has(source.url)
     ){
       return;
@@ -1166,6 +1168,7 @@ async function sendMessage(){
 
   if(!text||busy)return;
 
+  const useResearch=$('research').checked;
 
   input.value='';
 
@@ -1182,7 +1185,12 @@ async function sendMessage(){
 
 
   const bubble=
-    addMessage('assistant','Thinking...');
+    addMessage(
+      'assistant',
+      useResearch
+        ?'Searching the web...'
+        :'Thinking...'
+    );
 
 
   busy=true;
@@ -1190,10 +1198,44 @@ async function sendMessage(){
   $('sendBtn').disabled=true;
 
   $('chatStatus').textContent=
-    'Petrux is thinking...';
+    useResearch
+      ?'Petrux is searching the web...'
+      :'Petrux is thinking...';
 
 
   try{
+
+    /*
+       Create a copy of the conversation for the API.
+       When Search the web is checked, add a clear
+       instruction that triggers the server's live
+       search detection.
+    */
+
+    const apiMessages=history.map(message=>({
+      role:message.role,
+      content:message.content
+    }));
+
+
+    if(useResearch){
+
+      const lastMessage=
+        apiMessages[apiMessages.length-1];
+
+      if(
+        lastMessage&&
+        lastMessage.role==='user'
+      ){
+
+        lastMessage.content=
+          lastMessage.content+
+          '\n\nSearch the web for the latest and most accurate information. Use live web search and provide the real sources used.';
+
+      }
+
+    }
+
 
     const response=await fetch(
       '/api/chat',
@@ -1205,8 +1247,7 @@ async function sendMessage(){
         },
 
         body:JSON.stringify({
-          messages:history,
-          research:$('research').checked
+          messages:apiMessages
         })
 
       }
@@ -1231,19 +1272,28 @@ async function sendMessage(){
       'Sorry, no answer was returned.';
 
 
-    /* Get the REAL sources returned
-       by your live search backend */
+    /*
+       Only accept real HTTP/HTTPS source URLs
+       returned by the live-search backend.
+    */
 
     const sources=
       Array.isArray(data.sources)
-        ?data.sources
+        ?data.sources.filter(source=>
+          source&&
+          typeof source.url==='string'&&
+          /^https?:\/\//i.test(source.url)
+        )
         :[];
 
 
     bubble.textContent=answer;
 
 
-    /* Show sources underneath answer */
+    /*
+       Show the real sources directly underneath
+       Petrux AI's answer.
+    */
 
     addSourcesToBubble(
       bubble,
@@ -1261,7 +1311,10 @@ async function sendMessage(){
     lastAnswer=answer;
 
 
-    $('chatStatus').textContent='Ready';
+    $('chatStatus').textContent=
+      data.searched
+        ?'Live web search complete'
+        :'Ready';
 
 
     chats=chats.filter(
