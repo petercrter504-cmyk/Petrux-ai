@@ -328,22 +328,37 @@ function needsClarification(message) {
   return vagueQuestion.test(text);
 }
 
+/* ================================
+   IMPROVED LIVE SEARCH INSTRUCTIONS
+================================ */
+
 function searchContext() {
   return `
 LIVE WEB SEARCH IS ENABLED.
 
 You MUST use the browser_search tool to research the user's question.
-Do not answer current-information questions from memory alone.
-Base current-information answers on the information retrieved.
-Do not invent search results, sources or URLs.
-If the search does not provide enough information, say so honestly.
-Use information from the live search results only for current claims.
 
-When sources are available:
-- Include accurate source references in your answer.
-- Do not invent article titles or website addresses.
-- Prefer original reporting and direct article links.
-- Make it clear when a statement is an allegation or an unverified claim.
+Do not answer current-information questions from memory alone.
+
+IMPORTANT SOURCE AND ARTICLE LINK RULES:
+
+1. For news requests, search for individual news articles.
+2. Open individual article pages whenever possible.
+3. Do not use one news roundup, recap or homepage as the source for several unrelated headlines.
+4. Each headline must have its own direct article URL whenever an individual article is available.
+5. Prefer original reporting from the publisher.
+6. Search more than one reputable publisher when appropriate.
+7. Include direct article links in the answer using Markdown:
+   [Publisher name](DIRECT_ARTICLE_URL)
+8. Never reuse one article URL for different stories unless that article genuinely covers all those stories.
+9. Never invent article titles, publishers or URLs.
+10. If an individual article URL cannot be verified, say so instead of pretending it was verified.
+11. Distinguish confirmed facts from allegations and unverified claims.
+12. Do not claim stories are the most-read or most-shared unless reliable evidence supports that claim.
+
+For news headlines, present each story with its own source link directly beside or underneath it.
+
+Base current claims on information retrieved through live search.
 `;
 }
 
@@ -411,19 +426,25 @@ async function details(r) {
 }
 
 /* ================================
-   SOURCE EXTRACTION
+   IMPROVED SOURCE EXTRACTION
 ================================ */
 
 function extractSources(data) {
   const sources = [];
   const seen = new Set();
 
+  function parsedTitle(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
+  }
+
   function addSource(url, title = '') {
     if (typeof url !== 'string') return;
 
-    let cleanUrl = url.trim();
-
-    cleanUrl = cleanUrl.replace(/[),.;\]}]+$/g, '');
+    let cleanUrl = url.trim().replace(/[),.;\]}]+$/g, '');
 
     if (!/^https?:\/\//i.test(cleanUrl)) return;
 
@@ -438,6 +459,7 @@ function extractSources(data) {
         return;
       }
 
+      parsed.hash = '';
       cleanUrl = parsed.href;
     } catch {
       return;
@@ -453,21 +475,55 @@ function extractSources(data) {
       title:
         typeof title === 'string' && title.trim()
           ? title.trim().slice(0, 300)
-          : cleanUrl,
+          : parsedTitle(cleanUrl),
       url: cleanUrl
     });
   }
 
-  function scan(value, depth = 0) {
-    if (
-      depth > 15 ||
-      value === null ||
-      value === undefined
-    ) {
+  function scanBrowserResults(value) {
+    if (!value || typeof value !== 'object') return;
+
+    if (Array.isArray(value)) {
+      value.forEach(scanBrowserResults);
       return;
     }
 
+    if (typeof value.url === 'string') {
+      addSource(
+        value.url,
+        value.title || value.name || value.page_title || ''
+      );
+    }
+
+    if (value.browser_results) {
+      scanBrowserResults(value.browser_results);
+    }
+
+    if (value.search_results) {
+      scanBrowserResults(value.search_results);
+    }
+
+    if (value.results) {
+      scanBrowserResults(value.results);
+    }
+  }
+
+  function scan(value, depth = 0) {
+    if (
+      depth > 18 ||
+      value === null ||
+      value === undefined
+    ) return;
+
     if (typeof value === 'string') {
+      const markdownLinks = [
+        ...value.matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi)
+      ];
+
+      markdownLinks.forEach(match => {
+        addSource(match[2], match[1]);
+      });
+
       const urls = value.match(/https?:\/\/[^\s"'<>\\]+/gi);
 
       if (urls) {
@@ -478,10 +534,7 @@ function extractSources(data) {
     }
 
     if (Array.isArray(value)) {
-      for (const item of value) {
-        scan(item, depth + 1);
-      }
-
+      value.forEach(item => scan(item, depth + 1));
       return;
     }
 
@@ -513,10 +566,7 @@ function extractSources(data) {
       addSource(url, title);
     }
 
-    if (
-      value.url_citation &&
-      typeof value.url_citation === 'object'
-    ) {
+    if (value.url_citation) {
       const citation = value.url_citation;
 
       addSource(
@@ -533,6 +583,24 @@ function extractSources(data) {
       }
     }
   }
+
+  /*
+   * Prioritize browser results where available.
+   */
+
+  const message = data?.message || {};
+
+  const executedTools =
+    message.executed_tools ||
+    data?.executed_tools ||
+    [];
+
+  scanBrowserResults(executedTools);
+
+  /*
+   * Inspect citations, annotations and the complete
+   * response for additional genuine source URLs.
+   */
 
   scan(data);
 
@@ -632,15 +700,7 @@ async function groqRequest(messages, search, max, model, temperature) {
   }
 
   const sources = search
-    ? extractSources({
-        response: d,
-        message,
-        annotations: message.annotations,
-        citations: message.citations,
-        metadata: message.metadata,
-        sources: d.sources,
-        references: d.references
-      })
+    ? extractSources(d)
     : [];
 
   if (search) {
