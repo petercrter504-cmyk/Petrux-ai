@@ -15,12 +15,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 ================================ */
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_MODEL =
-  process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GROQ_MODEL =
+  process.env.GROQ_MODEL ||
+  'openai/gpt-oss-20b';
+
+const GEMINI_API_KEY =
+  process.env.GEMINI_API_KEY || '';
+
 const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  process.env.GEMINI_MODEL ||
+  'gemini-3.8-flash';
 
 const PAYSTACK_SECRET_KEY =
   process.env.PAYSTACK_SECRET_KEY || '';
@@ -64,10 +69,12 @@ entertainment and everyday topics.
 Help write original songs, lyrics, poems and stories.
 Understand Nigerian context when relevant.
 
-When browser search is enabled, use search results to verify
-current information.
+When live web search results are provided to you,
+use those results to answer current questions accurately.
 
-Never pretend to have searched the internet.
+Never claim that you searched the internet unless
+real live search results were provided to you.
+
 Never invent facts, search results, sources or URLs.
 Be honest about uncertainty.
 
@@ -81,7 +88,9 @@ You are Petrux AI, created by Peter Oriorowho.
 const emailOK = e =>
   typeof e === 'string' &&
   e.length <= 254 &&
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    e.trim()
+  );
 
 const appURL = req =>
   PUBLIC_APP_URL ||
@@ -89,7 +98,8 @@ const appURL = req =>
 
 const bearer = req =>
   (req.headers.authorization || '')
-    .match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || '';
+    .match(/^Bearer\s+(.+)$/i)?.[1]
+    ?.trim() || '';
 
 function error(res, e, fallback) {
   console.error('ERROR:', e);
@@ -110,11 +120,15 @@ function error(res, e, fallback) {
 
 function sign(data) {
   const encoded =
-    Buffer.from(JSON.stringify(data))
-      .toString('base64url');
+    Buffer.from(
+      JSON.stringify(data)
+    ).toString('base64url');
 
   const signature = crypto
-    .createHmac('sha256', PRO_TOKEN_SECRET)
+    .createHmac(
+      'sha256',
+      PRO_TOKEN_SECRET
+    )
     .update(encoded)
     .digest('hex');
 
@@ -142,12 +156,18 @@ function verifyToken(token) {
   }
 
   const expected = crypto
-    .createHmac('sha256', PRO_TOKEN_SECRET)
+    .createHmac(
+      'sha256',
+      PRO_TOKEN_SECRET
+    )
     .update(encoded)
     .digest('hex');
 
   const a = Buffer.from(sig, 'hex');
-  const b = Buffer.from(expected, 'hex');
+  const b = Buffer.from(
+    expected,
+    'hex'
+  );
 
   if (
     a.length !== b.length ||
@@ -158,8 +178,10 @@ function verifyToken(token) {
 
   try {
     const p = JSON.parse(
-      Buffer.from(encoded, 'base64url')
-        .toString()
+      Buffer.from(
+        encoded,
+        'base64url'
+      ).toString()
     );
 
     if (
@@ -187,7 +209,9 @@ function createToken(
   paidAt
 ) {
   const time =
-    paidAt ? Date.parse(paidAt) : Date.now();
+    paidAt
+      ? Date.parse(paidAt)
+      : Date.now();
 
   if (
     !Number.isFinite(time) ||
@@ -209,7 +233,9 @@ function createToken(
 
 function requirePro(req, res, next) {
   const user =
-    verifyToken(bearer(req));
+    verifyToken(
+      bearer(req)
+    );
 
   if (!user) {
     return res.status(403).json({
@@ -256,7 +282,8 @@ async function paystack(
   });
 
   const data =
-    await r.json().catch(() => ({}));
+    await r.json()
+      .catch(() => ({}));
 
   if (
     !r.ok ||
@@ -415,49 +442,11 @@ setTimeout(
 }
 
 /* ================================
-   AI SYSTEM AND WEB SEARCH
+   SEARCH DETECTION
 ================================ */
 
 const SEARCH =
-  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet|search for|find information about|research)\b/i;
-
-const BROWSER_SEARCH_MODELS = [
-  'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-safeguard-20b'
-];
-
-/*
-   IMPORTANT:
-   When live search is requested, Petrux AI must
-   use the browser search tool instead of answering
-   from its built-in knowledge.
-*/
-
-function searchContext() {
-  return `
-LIVE WEB SEARCH IS AVAILABLE FOR THIS REQUEST.
-
-IMPORTANT:
-The user has requested current information or a web search.
-You MUST use the available browser search tool before answering.
-
-Do not say that you cannot browse the internet.
-Do not answer from memory when the user specifically requests
-a web search or current information.
-
-After searching, answer using the information you found.
-
-Never invent search results, source names or URLs.
-
-If the search fails or does not provide enough useful
-information, say honestly that the live search could not
-find enough information.
-
-Do not claim to have searched unless the browser search
-tool was actually used.
-`;
-}
+  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet|search for|find information about|research|search web|google)\b/i;
 
 /* ================================
    CLEAN CHAT MESSAGES
@@ -503,6 +492,7 @@ function clean(messages) {
     }
 
     out.unshift(list[i]);
+
     total +=
       list[i].content.length;
   }
@@ -590,7 +580,7 @@ async function details(r) {
 }
 
 /* ================================
-   SOURCE EXTRACTION
+   URL AND TEXT HELPERS
 ================================ */
 
 function validURL(value) {
@@ -614,136 +604,443 @@ function validURL(value) {
   }
 }
 
-function sourceTitleFromURL(url) {
+function decodeHTML(text) {
+  return String(text || '')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#x27;/gi, "'")
+    .replace(/&#39;/gi, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+
+function stripHTML(text) {
+  return decodeHTML(
+    String(text || '')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+}
+
+function cleanSearchURL(url) {
+  if (!validURL(url)) {
+    return '';
+  }
+
   try {
     const parsed = new URL(url);
 
-    return parsed.hostname
-      .replace(/^www\./i, '');
+    /*
+     DuckDuckGo redirect links sometimes
+     contain the real address in uddg.
+    */
+    if (
+      parsed.hostname.includes('duckduckgo.com') &&
+      parsed.searchParams.get('uddg')
+    ) {
+      const target =
+        parsed.searchParams.get('uddg');
+
+      if (target && validURL(target)) {
+        return target;
+      }
+    }
+
+    return parsed.href;
 
   } catch {
-    return url;
+    return '';
   }
 }
 
-function extractSources(data) {
-  const found = [];
-  const seen = new Set();
-
-  function addSource(
-    url,
-    title
-  ) {
-    if (!validURL(url)) {
-      return;
-    }
-
-    const cleanURL =
-      String(url).trim();
-
-    if (seen.has(cleanURL)) {
-      return;
-    }
-
-    seen.add(cleanURL);
-
-    found.push({
-      url: cleanURL,
-      title:
-        typeof title === 'string' &&
-        title.trim()
-          ? title.trim().slice(0, 300)
-          : sourceTitleFromURL(cleanURL)
-    });
-  }
-
-  function scan(value, depth = 0) {
-    if (
-      depth > 12 ||
-      value === null ||
-      value === undefined
-    ) {
-      return;
-    }
-
-    if (
-      typeof value === 'string'
-    ) {
-      const matches =
-        value.match(
-          /https?:\/\/[^\s<>"'`)\]}]+/g
-        ) || [];
-
-      matches.forEach(url =>
-        addSource(
-          url.replace(
-            /[.,;:!?]+$/,
-            ''
-          )
-        )
-      );
-
-      return;
-    }
-
-    if (
-      Array.isArray(value)
-    ) {
-      value.forEach(item =>
-        scan(item, depth + 1)
-      );
-
-      return;
-    }
-
-    if (
-      typeof value !== 'object'
-    ) {
-      return;
-    }
-
-    const possibleURL =
-      value.url ||
-      value.uri ||
-      value.link ||
-      value.href ||
-      value.source_url ||
-      value.sourceUrl ||
-      value.web_url;
-
-    const possibleTitle =
-      value.title ||
-      value.name ||
-      value.source_name ||
-      value.sourceName ||
-      value.domain;
-
-    if (validURL(possibleURL)) {
-      addSource(
-        possibleURL,
-        possibleTitle
-      );
-    }
-
-    Object.values(value)
-      .forEach(item =>
-        scan(item, depth + 1)
-      );
-  }
-
-  scan(data);
-
-  return found.slice(0, 10);
+function decodeXML(text) {
+  return decodeHTML(
+    String(text || '')
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+      .replace(/&nbsp;/gi, ' ')
+  );
 }
 
 /* ================================
-   GROQ AI WITH BROWSER SEARCH
+   LIVE WEB SEARCH
+================================ */
+
+/*
+   SEARCH METHOD 1:
+   DuckDuckGo HTML
+
+   Multiple patterns are used because
+   DuckDuckGo can change its HTML.
+*/
+
+async function searchDuckDuckGo(query) {
+  const searchURL =
+    'https://html.duckduckgo.com/html/?q=' +
+    encodeURIComponent(query);
+
+  const r = await fetch(
+    searchURL,
+    {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'Accept':
+          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language':
+          'en-US,en;q=0.9'
+      },
+
+      signal:
+        AbortSignal.timeout(TIMEOUT)
+    }
+  );
+
+  if (!r.ok) {
+    throw new Error(
+      `DuckDuckGo returned status ${r.status}`
+    );
+  }
+
+  const html = await r.text();
+
+  const results = [];
+  const seen = new Set();
+
+  const patterns = [
+    /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi,
+    /<a[^>]*href="([^"]+)"[^>]*data-testid="result-title-a"[^>]*>([\s\S]*?)<\/a>/gi,
+    /<a[^>]*data-testid="result-title-a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+
+    while (
+      (match = pattern.exec(html)) !== null &&
+      results.length < 8
+    ) {
+      let url =
+        decodeHTML(match[1]).trim();
+
+      try {
+        if (
+          url.includes('uddg=') ||
+          url.startsWith('/l/?')
+        ) {
+          const parsed =
+            new URL(
+              url,
+              'https://duckduckgo.com'
+            );
+
+          const target =
+            parsed.searchParams.get('uddg');
+
+          if (target) {
+            url =
+              decodeURIComponent(target);
+          }
+        }
+      } catch {}
+
+      url = cleanSearchURL(url);
+
+      const title =
+        stripHTML(match[2])
+          .slice(0, 300);
+
+      if (
+        validURL(url) &&
+        title &&
+        !seen.has(url)
+      ) {
+        seen.add(url);
+
+        results.push({
+          title,
+          url,
+          snippet: ''
+        });
+      }
+    }
+
+    if (results.length >= 3) {
+      break;
+    }
+  }
+
+  /*
+     Collect snippets separately.
+  */
+
+  const snippets = [];
+  const snippetPattern =
+    /<[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/gi;
+
+  let snippetMatch;
+
+  while (
+    (snippetMatch =
+      snippetPattern.exec(html)) !== null &&
+    snippets.length < results.length
+  ) {
+    const snippet =
+      stripHTML(snippetMatch[1])
+        .slice(0, 700);
+
+    if (snippet) {
+      snippets.push(snippet);
+    }
+  }
+
+  results.forEach(
+    (result, index) => {
+      result.snippet =
+        snippets[index] || '';
+    }
+  );
+
+  if (!results.length) {
+    throw new Error(
+      'DuckDuckGo returned no readable results.'
+    );
+  }
+
+  return results;
+}
+
+/*
+   SEARCH METHOD 2:
+   Bing RSS fallback.
+
+   RSS is simpler and more stable to
+   parse than a normal search page.
+*/
+
+async function searchBingRSS(query) {
+  const searchURL =
+    'https://www.bing.com/search?format=rss&q=' +
+    encodeURIComponent(query);
+
+  const r = await fetch(
+    searchURL,
+    {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; PetruxAI/1.0)',
+        'Accept':
+          'application/rss+xml,application/xml,text/xml,*/*'
+      },
+
+      signal:
+        AbortSignal.timeout(TIMEOUT)
+    }
+  );
+
+  if (!r.ok) {
+    throw new Error(
+      `Bing returned status ${r.status}`
+    );
+  }
+
+  const xml = await r.text();
+
+  const results = [];
+  const seen = new Set();
+
+  const itemPattern =
+    /<item>([\s\S]*?)<\/item>/gi;
+
+  let item;
+
+  while (
+    (item = itemPattern.exec(xml)) !== null &&
+    results.length < 8
+  ) {
+    const block = item[1];
+
+    const titleMatch =
+      block.match(
+        /<title>([\s\S]*?)<\/title>/i
+      );
+
+    const linkMatch =
+      block.match(
+        /<link>([\s\S]*?)<\/link>/i
+      );
+
+    const descriptionMatch =
+      block.match(
+        /<description>([\s\S]*?)<\/description>/i
+      );
+
+    const title =
+      titleMatch
+        ? stripHTML(
+            decodeXML(titleMatch[1])
+          ).slice(0, 300)
+        : '';
+
+    let url =
+      linkMatch
+        ? decodeXML(linkMatch[1])
+            .trim()
+        : '';
+
+    const snippet =
+      descriptionMatch
+        ? stripHTML(
+            decodeXML(
+              descriptionMatch[1]
+            )
+          ).slice(0, 700)
+        : '';
+
+    url = cleanSearchURL(url);
+
+    if (
+      validURL(url) &&
+      title &&
+      !seen.has(url)
+    ) {
+      seen.add(url);
+
+      results.push({
+        title,
+        url,
+        snippet
+      });
+    }
+  }
+
+  if (!results.length) {
+    throw new Error(
+      'Bing returned no readable results.'
+    );
+  }
+
+  return results;
+}
+
+/*
+   Main live search function.
+
+   Petrux tries DuckDuckGo first.
+   If it fails, Bing RSS is used.
+*/
+
+async function liveWebSearch(query) {
+  const cleanQuery =
+    String(query || '')
+      .trim()
+      .slice(0, 300);
+
+  if (!cleanQuery) {
+    return {
+      results: [],
+      context: '',
+      provider: ''
+    };
+  }
+
+  console.log(
+    `LIVE WEB SEARCH: ${cleanQuery}`
+  );
+
+  const attempts = [
+    {
+      name: 'DuckDuckGo',
+      search: searchDuckDuckGo
+    },
+    {
+      name: 'Bing',
+      search: searchBingRSS
+    }
+  ];
+
+  const errors = [];
+
+  for (const attempt of attempts) {
+    try {
+      console.log(
+        `Trying ${attempt.name} search...`
+      );
+
+      const results =
+        await attempt.search(
+          cleanQuery
+        );
+
+      if (!results.length) {
+        throw new Error(
+          'No results found.'
+        );
+      }
+
+      const context =
+        results
+          .map(
+            (result, index) =>
+              `SOURCE ${index + 1}\n` +
+              `Title: ${result.title}\n` +
+              `URL: ${result.url}\n` +
+              (
+                result.snippet
+                  ? `Summary: ${result.snippet}\n`
+                  : ''
+              )
+          )
+          .join('\n');
+
+      console.log(
+        `LIVE SEARCH SUCCESS: ${results.length} results from ${attempt.name}.`
+      );
+
+      return {
+        results,
+        context,
+        provider:
+          attempt.name
+      };
+
+    } catch (e) {
+      console.error(
+        `${attempt.name} search failed:`,
+        e.message
+      );
+
+      errors.push(
+        `${attempt.name}: ${e.message}`
+      );
+    }
+  }
+
+  const error =
+    new Error(
+      'Petrux AI could not complete the live web search. ' +
+      'All available search providers failed. ' +
+      errors.join(' | ')
+    );
+
+  error.status = 502;
+
+  throw error;
+}
+
+/* ================================
+   GROQ AI
 ================================ */
 
 async function groq(
   messages,
   search,
-  max = 900
+  max = 900,
+  webContext = '',
+  webSources = []
 ) {
   if (!GROQ_API_KEY) {
     const e = new Error(
@@ -754,31 +1051,42 @@ async function groq(
     throw e;
   }
 
-  if (
-    search &&
-    !BROWSER_SEARCH_MODELS.includes(
-      GROQ_MODEL
-    )
-  ) {
-    const e = new Error(
-      'Live web search requires a supported Groq model. Set GROQ_MODEL to openai/gpt-oss-20b in Render.'
-    );
-
-    e.status = 503;
-    throw e;
-  }
-
   console.log(
     `Groq request started. Model: ${GROQ_MODEL}`
   );
 
-  console.log(
-    `Groq browser search: ${
+  const systemMessage =
+    SYSTEM_PROMPT +
+    (
       search
-        ? 'ENABLED'
-        : 'DISABLED'
-    }`
-  );
+        ? `
+
+IMPORTANT LIVE WEB SEARCH INSTRUCTIONS:
+
+The Petrux AI server has already performed a REAL live web search.
+
+The search results are provided below.
+
+Use these results to answer the user's question.
+
+Do not say that you cannot browse the internet.
+Do not say you do not have web access.
+
+Do not invent additional search results, URLs or facts.
+
+If the results do not contain enough information to answer the
+question, clearly say that the available live search results were
+not sufficient.
+
+When useful, mention the sources and URLs that were actually
+provided.
+
+LIVE WEB SEARCH RESULTS:
+
+${webContext}
+`
+        : ''
+    );
 
   const body = {
     model: GROQ_MODEL,
@@ -786,25 +1094,22 @@ async function groq(
     messages: [
       {
         role: 'system',
-
-        content:
-          SYSTEM_PROMPT +
-          (
-            search
-              ? '\n' +
-                searchContext()
-              : ''
-          )
+        content: systemMessage
       },
 
       ...messages
     ],
 
     temperature:
-      search ? 0.3 : 0.6,
+      search
+        ? 0.2
+        : 0.6,
 
-    max_completion_tokens: max,
-    stream: false
+    max_completion_tokens:
+      max,
+
+    stream:
+      false
   };
 
   if (
@@ -812,26 +1117,8 @@ async function groq(
       'openai/gpt-oss-'
     )
   ) {
-    body.reasoning_effort = 'low';
-  }
-
-  /*
-     LIVE WEB SEARCH
-
-     When search is requested, the model is required
-     to use the browser search tool. This prevents
-     Petrux AI from ignoring the search request and
-     replying that it cannot browse the internet.
-  */
-
-  if (search) {
-    body.tools = [
-      {
-        type: 'browser_search'
-      }
-    ];
-
-    body.tool_choice = 'required';
+    body.reasoning_effort =
+      'low';
   }
 
   const r = await fetch(
@@ -864,7 +1151,8 @@ async function groq(
       ).slice(0, 350)}`
     );
 
-    e.status = r.status;
+    e.status =
+      r.status;
 
     const retry =
       Number(
@@ -881,10 +1169,13 @@ async function groq(
     throw e;
   }
 
-  const d = await r.json();
+  const d =
+    await r.json();
 
   const answer =
-    d.choices?.[0]?.message?.content;
+    d.choices?.[0]
+      ?.message
+      ?.content;
 
   if (
     typeof answer !== 'string' ||
@@ -895,37 +1186,24 @@ async function groq(
     );
   }
 
-  const sources =
-    search
-      ? extractSources(d)
-      : [];
-
   console.log(
     'Groq response successful.'
   );
-
-  if (search) {
-    console.log(
-      `Sources found: ${sources.length}`
-    );
-
-    sources.forEach(
-      (source, index) =>
-        console.log(
-          `Source ${index + 1}: ${source.url}`
-        )
-    );
-  }
 
   return {
     answer:
       answer.trim(),
 
-    provider: 'groq',
+    provider:
+      'groq',
 
-    searched: search,
+    searched:
+      search,
 
-    sources
+    sources:
+      search
+        ? webSources
+        : []
   };
 }
 
@@ -960,39 +1238,41 @@ async function gemini(
     )}`;
 
   const r = await fetch(url, {
-    method: 'POST',
+    method:
+      'POST',
 
     headers: {
       'Content-Type':
         'application/json'
     },
 
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{
-          text:
-            SYSTEM_PROMPT
-        }]
-      },
-
-      contents:
-        messages.map(m => ({
-          role:
-            m.role === 'assistant'
-              ? 'model'
-              : 'user',
-
+    body:
+      JSON.stringify({
+        systemInstruction: {
           parts: [{
             text:
-              m.content
+              SYSTEM_PROMPT
           }]
-        })),
+        },
 
-      generationConfig: {
-        maxOutputTokens:
-          max
-      }
-    }),
+        contents:
+          messages.map(m => ({
+            role:
+              m.role === 'assistant'
+                ? 'model'
+                : 'user',
+
+            parts: [{
+              text:
+                m.content
+            }]
+          })),
+
+        generationConfig: {
+          maxOutputTokens:
+            max
+        }
+      }),
 
     signal:
       AbortSignal.timeout(
@@ -1001,11 +1281,14 @@ async function gemini(
   });
 
   if (!r.ok) {
-    throw new Error(
+    const e = new Error(
       `Gemini error (${r.status}): ${String(
         await details(r)
       ).slice(0, 350)}`
     );
+
+    e.status = r.status;
+    throw e;
   }
 
   const d =
@@ -1033,9 +1316,12 @@ async function gemini(
 
   return {
     answer,
-    provider: 'gemini',
-    searched: false,
-    sources: []
+    provider:
+      'gemini',
+    searched:
+      false,
+    sources:
+      []
   };
 }
 
@@ -1074,10 +1360,17 @@ async function generate(
     );
 
     return {
-      answer: quick,
-      provider: 'instant',
-      searched: false,
-      sources: []
+      answer:
+        quick,
+
+      provider:
+        'instant',
+
+      searched:
+        false,
+
+      sources:
+        []
     };
   }
 
@@ -1096,68 +1389,107 @@ async function generate(
 
     return {
       ...cache.get(key).result,
-      cached: true
+      cached:
+        true
     };
   }
 
-  /*
-   LIVE SEARCH MUST USE GROQ.
-   Gemini will not silently answer
-   a live-search request.
-  */
+  /* ================================
+     LIVE WEB SEARCH
+  ================================ */
 
   if (search) {
-    if (!GROQ_API_KEY) {
-      const e = new Error(
-        'Live web search is unavailable because the Groq API key is missing.'
+    console.log(
+      'Starting real live web search...'
+    );
+
+    /*
+       Search the web first.
+
+       If Groq fails after a successful
+       search, Gemini can still answer
+       using the real search results.
+    */
+
+    const web =
+      await liveWebSearch(
+        lastUserMessage
       );
 
-      e.status = 503;
-      throw e;
-    }
+    console.log(
+      `Live search provider: ${web.provider}`
+    );
+
+    console.log(
+      'Sending live search results to Groq...'
+    );
 
     try {
       return await groq(
         messages,
         true,
-        max
+        max,
+        web.context,
+        web.results
       );
 
     } catch (e) {
       console.error(
-        'LIVE WEB SEARCH ERROR:',
+        'Groq live search response failed:',
         e.message
       );
 
-      if (
-        e.status === 429
-      ) {
-        groqBlockedUntil =
-          Date.now() +
-          (
-            e.retryAfterMs ||
-            900000
-          ) +
-          10000;
+      /*
+         Gemini fallback receives the
+         real web results directly in
+         the user's context.
+      */
+
+      if (GEMINI_API_KEY) {
+        try {
+          console.log(
+            'Trying Gemini fallback with live search results...'
+          );
+
+          const searchMessages = [
+            {
+              role: 'user',
+              content:
+                `The Petrux AI server performed a real live web search for the following question:\n\n` +
+                `${lastUserMessage}\n\n` +
+                `REAL LIVE WEB SEARCH RESULTS:\n\n` +
+                `${web.context}\n\n` +
+                `Answer the question using only these live search results where current information is needed. Do not invent sources or URLs.`
+            }
+          ];
+
+          const result =
+            await gemini(
+              searchMessages,
+              max
+            );
+
+          return {
+            ...result,
+            searched: true,
+            sources: web.results
+          };
+
+        } catch (geminiError) {
+          console.error(
+            'Gemini live search fallback failed:',
+            geminiError.message
+          );
+        }
       }
 
-      const failure =
-        new Error(
-          'Petrux AI could not complete a live web search. Please try again shortly. ' +
-          `Details: ${e.message}`
-        );
-
-      failure.status =
-        e.status || 502;
-
-      throw failure;
+      throw e;
     }
   }
 
-  /*
-   NORMAL AI RESPONSE:
-   Try Groq first.
-  */
+  /* ================================
+     NORMAL AI RESPONSE
+  ================================ */
 
   if (
     GROQ_API_KEY &&
@@ -1218,9 +1550,9 @@ async function generate(
     }
   }
 
-  /*
-   FALLBACK TO GEMINI
-  */
+  /* ================================
+     FALLBACK TO GEMINI
+  ================================ */
 
   if (GEMINI_API_KEY) {
     try {
@@ -1280,14 +1612,12 @@ app.get(
 
       webSearch: {
         enabled:
-          !!GROQ_API_KEY &&
-          BROWSER_SEARCH_MODELS
-            .includes(
-              GROQ_MODEL
-            ),
+          true,
 
-        provider:
-          'Groq Browser Search',
+        providers: [
+          'DuckDuckGo',
+          'Bing RSS'
+        ],
 
         model:
           GROQ_MODEL
@@ -1339,7 +1669,8 @@ app.post(
         clean(
           req.body.messages || [
             {
-              role: 'user',
+              role:
+                'user',
 
               content:
                 req.body.message ||
@@ -1452,7 +1783,8 @@ app.post(
         clean(
           req.body.messages || [
             {
-              role: 'user',
+              role:
+                'user',
 
               content:
                 req.body.message ||
@@ -1509,14 +1841,16 @@ app.post(
 
         res.write(
           `data: ${JSON.stringify({
-            token: word
+            token:
+              word
           })}\n\n`
         );
       }
 
       res.write(
         `data: ${JSON.stringify({
-          done: true,
+          done:
+            true,
 
           provider:
             result.provider,
@@ -2086,15 +2420,7 @@ app.listen(
     );
 
     console.log(
-      `Web Search: ${
-        GROQ_API_KEY &&
-        BROWSER_SEARCH_MODELS
-          .includes(
-            GROQ_MODEL
-          )
-          ? 'Groq Browser Search enabled'
-          : 'Unavailable - check GROQ_MODEL and GROQ_API_KEY'
-      }`
+      'Web Search: DuckDuckGo with Bing RSS fallback enabled'
     );
 
     console.log(
