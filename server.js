@@ -427,22 +427,35 @@ const BROWSER_SEARCH_MODELS = [
   'openai/gpt-oss-safeguard-20b'
 ];
 
+/*
+   IMPORTANT:
+   When live search is requested, Petrux AI must
+   use the browser search tool instead of answering
+   from its built-in knowledge.
+*/
+
 function searchContext() {
   return `
-LIVE WEB SEARCH IS ENABLED.
+LIVE WEB SEARCH IS AVAILABLE FOR THIS REQUEST.
 
-Research the user's question using the browser search tool
-when current or external information is needed.
+IMPORTANT:
+The user has requested current information or a web search.
+You MUST use the available browser search tool before answering.
 
-Base your answer on information retrieved from the search.
+Do not say that you cannot browse the internet.
+Do not answer from memory when the user specifically requests
+a web search or current information.
 
-Do not invent search results, source names or URLs.
+After searching, answer using the information you found.
 
-When information comes from web search, provide useful source
-references when the search system makes them available.
+Never invent search results, source names or URLs.
 
-If the search does not provide enough information,
-say so honestly.
+If the search fails or does not provide enough useful
+information, say honestly that the live search could not
+find enough information.
+
+Do not claim to have searched unless the browser search
+tool was actually used.
 `;
 }
 
@@ -578,13 +591,6 @@ async function details(r) {
 
 /* ================================
    SOURCE EXTRACTION
-
-   Groq search responses can contain source
-   information in different locations depending
-   on the model and API response format.
-
-   This safely scans the response for real URLs
-   without inventing any sources.
 ================================ */
 
 function validURL(value) {
@@ -663,11 +669,6 @@ function extractSources(data) {
     if (
       typeof value === 'string'
     ) {
-      /*
-       Extract normal URLs found inside
-       returned text or metadata.
-      */
-
       const matches =
         value.match(
           /https?:\/\/[^\s<>"'`)\]}]+/g
@@ -701,10 +702,6 @@ function extractSources(data) {
       return;
     }
 
-    /*
-     Try common source object formats first.
-    */
-
     const possibleURL =
       value.url ||
       value.uri ||
@@ -727,10 +724,6 @@ function extractSources(data) {
         possibleTitle
       );
     }
-
-    /*
-     Continue scanning all properties.
-    */
 
     Object.values(value)
       .forEach(item =>
@@ -822,6 +815,15 @@ async function groq(
     body.reasoning_effort = 'low';
   }
 
+  /*
+     LIVE WEB SEARCH
+
+     When search is requested, the model is required
+     to use the browser search tool. This prevents
+     Petrux AI from ignoring the search request and
+     replying that it cannot browse the internet.
+  */
+
   if (search) {
     body.tools = [
       {
@@ -829,17 +831,7 @@ async function groq(
       }
     ];
 
-    /*
-     AUTO prevents the previous error:
-
-     "Tool choice is required, but model
-     did not call a tool"
-
-     The system prompt still tells Petrux
-     to use search for the user's request.
-    */
-
-    body.tool_choice = 'auto';
+    body.tool_choice = 'required';
   }
 
   const r = await fetch(
@@ -902,11 +894,6 @@ async function groq(
       'Groq returned an empty answer.'
     );
   }
-
-  /*
-   Extract any real sources returned
-   by Groq's browser search response.
-  */
 
   const sources =
     search
@@ -1056,14 +1043,6 @@ async function gemini(
    RESPONSE GENERATION
 ================================ */
 
-/*
- forceSearch is used by the
- "Search the web" checkbox.
-
- max remains the third parameter so
- Song Lab can still request 1800 tokens.
-*/
-
 async function generate(
   messages,
   forceSearch = false,
@@ -1077,14 +1056,6 @@ async function generate(
       )
       .at(-1)
       ?.content || '';
-
-  /*
-   Search happens when either:
-
-   1. The user checks Search the web.
-   OR
-   2. The message contains a current/search phrase.
-  */
 
   const search =
     forceSearch === true ||
@@ -1131,7 +1102,6 @@ async function generate(
 
   /*
    LIVE SEARCH MUST USE GROQ.
-
    Gemini will not silently answer
    a live-search request.
   */
@@ -1386,11 +1356,6 @@ app.post(
           });
       }
 
-      /*
-       This reads the checkbox from
-       your existing HTML.
-      */
-
       const forceSearch =
         req.body.research === true;
 
@@ -1414,11 +1379,6 @@ app.post(
       console.log(
         'Generating response...'
       );
-
-      /*
-       IMPORTANT:
-       Pass the checkbox setting to generate().
-      */
 
       const result =
         await generate(
@@ -1631,11 +1591,6 @@ app.post(
               'Describe the song you want.'
           });
       }
-
-      /*
-       false = do not force web search
-       1800 = output token limit
-      */
 
       const result =
         await generate(
