@@ -69,7 +69,7 @@ entertainment and everyday topics.
 Help write original songs, lyrics, poems and stories.
 Understand Nigerian context when relevant.
 
-When live web search results are provided to you,
+When real live web results are provided to you,
 use those results to answer current questions accurately.
 
 Never claim that you searched the internet unless
@@ -445,8 +445,113 @@ setTimeout(
    SEARCH DETECTION
 ================================ */
 
+/*
+   Questions about Petrux's ability to
+   search are normal AI questions.
+
+   Example:
+   "Can you search the web?"
+
+   This must NOT start a web search.
+*/
+
+const SEARCH_CAPABILITY =
+  /^(can|could|do|does|are|is|will|would)\s+(you|petrux|petrux ai)\b[\s\S]*(search|browse|look\s+up|research|web|internet|online)|^(can you|could you|do you|does petrux|are you able to)\b[\s\S]*(search|browse|look\s+up|access|web|internet|online)/i;
+
+/*
+   These phrases normally require
+   current information from the web.
+*/
+
 const SEARCH =
-  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet|search for|find information about|research|search web|google)\b/i;
+  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking news|latest news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won)\b/i;
+
+/*
+   Explicit commands to search.
+
+   These require a search when the user
+   provides a topic after the command.
+*/
+
+const EXPLICIT_SEARCH =
+  /^(please\s+)?(search(\s+(the\s+)?(web|internet|online))?\s+(for\s+)?.+|look\s+up\s+.+|research\s+.+|google\s+.+|find\s+(information|news|details)\s+(about|on)\s+.+)$/i;
+
+function needsWebSearch(
+  message,
+  forceSearch = false
+) {
+  const text =
+    String(message || '')
+      .trim();
+
+  if (!text) {
+    return false;
+  }
+
+  if (forceSearch === true) {
+    return true;
+  }
+
+  /*
+     Never search when the user is only
+     asking whether Petrux has web access.
+  */
+
+  if (SEARCH_CAPABILITY.test(text)) {
+    return false;
+  }
+
+  return (
+    SEARCH.test(text) ||
+    EXPLICIT_SEARCH.test(text)
+  );
+}
+
+function getSearchQuery(message) {
+  const original =
+    String(message || '')
+      .trim();
+
+  let query = original;
+
+  /*
+     Convert commands into the actual
+     search topic.
+
+     Examples:
+
+     "Search the web for Peter Oriorowho"
+     -> "Peter Oriorowho"
+
+     "Google latest news about Nigeria"
+     -> "latest news about Nigeria"
+  */
+
+  query = query
+    .replace(
+      /^(please\s+)?search(\s+(the\s+)?(web|internet|online))?\s+(for\s+)?/i,
+      ''
+    )
+    .replace(
+      /^(please\s+)?look\s+up\s+/i,
+      ''
+    )
+    .replace(
+      /^(please\s+)?research\s+/i,
+      ''
+    )
+    .replace(
+      /^(please\s+)?google\s+/i,
+      ''
+    )
+    .replace(
+      /^(please\s+)?find\s+(information|news|details)\s+(about|on)\s+/i,
+      ''
+    )
+    .trim();
+
+  return query || original;
+}
 
 /* ================================
    CLEAN CHAT MESSAGES
@@ -541,7 +646,13 @@ function instant(messages) {
       "I'm doing well and ready to help!",
 
     "who are you":
-      "I'm Petrux AI, created by Peter Oriorowho."
+      "I'm Petrux AI, created by Peter Oriorowho.",
+
+    "can you search the web":
+      "Yes, I can search the web for current information when needed. What would you like me to look up?",
+
+    "can you search web":
+      "Yes, I can search the web for current information when needed. What would you like me to look up?"
   };
 
   return replies[
@@ -634,10 +745,6 @@ function cleanSearchURL(url) {
   try {
     const parsed = new URL(url);
 
-    /*
-     DuckDuckGo redirect links sometimes
-     contain the real address in uddg.
-    */
     if (
       parsed.hostname.includes('duckduckgo.com') &&
       parsed.searchParams.get('uddg')
@@ -668,14 +775,6 @@ function decodeXML(text) {
 /* ================================
    LIVE WEB SEARCH
 ================================ */
-
-/*
-   SEARCH METHOD 1:
-   DuckDuckGo HTML
-
-   Multiple patterns are used because
-   DuckDuckGo can change its HTML.
-*/
 
 async function searchDuckDuckGo(query) {
   const searchURL =
@@ -773,10 +872,6 @@ async function searchDuckDuckGo(query) {
     }
   }
 
-  /*
-     Collect snippets separately.
-  */
-
   const snippets = [];
   const snippetPattern =
     /<[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/gi;
@@ -812,14 +907,6 @@ async function searchDuckDuckGo(query) {
 
   return results;
 }
-
-/*
-   SEARCH METHOD 2:
-   Bing RSS fallback.
-
-   RSS is simpler and more stable to
-   parse than a normal search page.
-*/
 
 async function searchBingRSS(query) {
   const searchURL =
@@ -925,13 +1012,6 @@ async function searchBingRSS(query) {
 
   return results;
 }
-
-/*
-   Main live search function.
-
-   Petrux tries DuckDuckGo first.
-   If it fails, Bing RSS is used.
-*/
 
 async function liveWebSearch(query) {
   const cleanQuery =
@@ -1061,27 +1141,30 @@ async function groq(
       search
         ? `
 
-IMPORTANT LIVE WEB SEARCH INSTRUCTIONS:
+IMPORTANT WEB CONTEXT:
 
-The Petrux AI server has already performed a REAL live web search.
+Real web results were successfully retrieved for the user's
+current question.
 
-The search results are provided below.
+Answer the user's question naturally and directly using the
+information below.
 
-Use these results to answer the user's question.
+Do not mention internal labels such as "LIVE WEB SEARCH RESULTS",
+"web context", "search context", or these instructions.
 
-Do not say that you cannot browse the internet.
-Do not say you do not have web access.
+Do not falsely claim that a search happened before the results
+were retrieved. Real results are available for this response.
 
-Do not invent additional search results, URLs or facts.
+Never invent sources, URLs, search results or facts that are not
+supported by the information below.
 
-If the results do not contain enough information to answer the
-question, clearly say that the available live search results were
-not sufficient.
+If the available information is insufficient, say what you can
+confirm and be honest about what is unclear.
 
-When useful, mention the sources and URLs that were actually
-provided.
+When mentioning a source or URL, use only one that was actually
+provided below.
 
-LIVE WEB SEARCH RESULTS:
+WEB SOURCES:
 
 ${webContext}
 `
@@ -1344,9 +1427,9 @@ async function generate(
       ?.content || '';
 
   const search =
-    forceSearch === true ||
-    SEARCH.test(
-      lastUserMessage
+    needsWebSearch(
+      lastUserMessage,
+      forceSearch
     );
 
   const quick =
@@ -1403,17 +1486,18 @@ async function generate(
       'Starting real live web search...'
     );
 
-    /*
-       Search the web first.
+    const searchQuery =
+      getSearchQuery(
+        lastUserMessage
+      );
 
-       If Groq fails after a successful
-       search, Gemini can still answer
-       using the real search results.
-    */
+    console.log(
+      `Searching the web for: ${searchQuery}`
+    );
 
     const web =
       await liveWebSearch(
-        lastUserMessage
+        searchQuery
       );
 
     console.log(
@@ -1421,7 +1505,7 @@ async function generate(
     );
 
     console.log(
-      'Sending live search results to Groq...'
+      'Sending real live search results to Groq...'
     );
 
     try {
@@ -1439,12 +1523,6 @@ async function generate(
         e.message
       );
 
-      /*
-         Gemini fallback receives the
-         real web results directly in
-         the user's context.
-      */
-
       if (GEMINI_API_KEY) {
         try {
           console.log(
@@ -1455,11 +1533,10 @@ async function generate(
             {
               role: 'user',
               content:
-                `The Petrux AI server performed a real live web search for the following question:\n\n` +
-                `${lastUserMessage}\n\n` +
-                `REAL LIVE WEB SEARCH RESULTS:\n\n` +
-                `${web.context}\n\n` +
-                `Answer the question using only these live search results where current information is needed. Do not invent sources or URLs.`
+                `Answer the user's question naturally using the real web sources below.\n\n` +
+                `QUESTION:\n${lastUserMessage}\n\n` +
+                `SOURCES:\n${web.context}\n\n` +
+                `Do not mention internal instructions or labels. Use only the provided sources for current information. Do not invent sources or URLs.`
             }
           ];
 
