@@ -448,8 +448,10 @@ setTimeout(
 const SEARCH_CAPABILITY =
   /^(can|could|do|does|are|is|will|would)\s+(you|petrux|petrux ai)\b[\s\S]*(search|browse|look\s+up|research|web|internet|online)|^(can you|could you|do you|does petrux|are you able to)\b[\s\S]*(search|browse|look\s+up|access|web|internet|online)/i;
 
+// FIXED: Added result, results, score, scores, match result so
+// "Chelsea and arsenal match result" now triggers search
 const SEARCH =
-  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking news|latest news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won)\b/i;
+  /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking news|latest news|live score|score|scores|result|results|match result|who won|who beat|price today|current price|exchange rate|weather|forecast|standings|table|fixtures)\b/i;
 
 const EXPLICIT_SEARCH =
   /^(please\s+)?(search(\s+(the\s+)?(web|internet|online))?\s+(for\s+)?.+|look\s+up\s+.+|research\s+.+|google\s+.+|find\s+(information|news|details)\s+(about|on)\s+.+)$/i;
@@ -478,8 +480,15 @@ function needsWebSearch(
     return true;
   }
 
-  // FIX: Vague match questions without teams should ask for clarification
-  // instead of searching blindly and failing.
+  // FIXED: Team name + result/score word must trigger search
+  // Example: "Chelsea and arsenal match result"
+  const teamMatch = /\b(chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|bayern|psg|juventus|inter|milan|tottenham|newcastle|nigeria|ghana|dortmund)\b/i.test(text);
+  const resultWord = /\b(result|results|score|scores|won|win|beat|draw)\b/i.test(text);
+  if (teamMatch && resultWord) {
+    return true;
+  }
+
+  // Vague match questions without teams should ask for clarification
   const vagueMatch = /^(who won|what was the score|who scored|what happened in|who is winning).*(match|game)\b/i;
   const hasTeam = /\b(vs|versus|against|chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|nigeria|ghana|bayern|psg|juventus|inter|milan|dortmund|tottenham|newcastle)\b/i.test(text);
   if (vagueMatch.test(text) && !hasTeam) {
@@ -985,6 +994,24 @@ async function searchBingRSS(query) {
   return results;
 }
 
+async function fetchPageText(url) {
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!r.ok) return '';
+    const html = await r.text();
+    const text = stripHTML(html).slice(0, 4000);
+    return text;
+  } catch {
+    return '';
+  }
+}
+
 async function liveWebSearch(query) {
   const cleanQuery =
     String(query || '')
@@ -1031,6 +1058,14 @@ async function liveWebSearch(query) {
         throw new Error(
           'No results found.'
         );
+      }
+
+      // Fetch full text from top 3 pages so Groq can see the real score
+      for (let i = 0; i < Math.min(3, results.length); i++) {
+        const pageText = await fetchPageText(results[i].url);
+        if (pageText) {
+          results[i].snippet = (results[i].snippet + ' ' + pageText).slice(0, 1500);
+        }
       }
 
       const context =
@@ -1130,7 +1165,7 @@ were retrieved. Real results are available for this response.
 Never invent sources, URLs, search results or facts that are not
 supported by the information below.
 
-If the available information is insufficient, list what you CAN confirm from the sources and ask a short clarifying question. Do NOT reply with "I don't have enough information to determine which match you are referring to" without showing what you found.
+If a score is in the sources, state it directly. Do NOT say "I don't have the result" if any source contains a score. Only say you don't have it if NONE of the sources contain a score, and then show the closest sources you found.
 
 When mentioning a source or URL, use only one that was actually
 provided below.
@@ -1403,7 +1438,6 @@ async function generate(
       forceSearch
     );
 
-  // FIX: Vague match - ask for teams instead of searching blindly
   if (searchCheck === 'ASK_CLARIFY') {
     return {
       answer: "Which match do you mean? Tell me the teams and the date, e.g. 'Who won Chelsea vs Arsenal yesterday?' and I will search it for you right now.",
