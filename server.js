@@ -516,7 +516,6 @@ function getSearchQuery(message) {
     )
     .trim();
 
-  // FIX: Remove "who won" - Bing thinks "won" = Korean money
   query = query
     .replace(/^who\s+won\s+/i, '')
     .replace(/^who\s+beat\s+/i, '')
@@ -525,17 +524,15 @@ function getSearchQuery(message) {
     .replace(/^did\s+/i, '')
     .trim();
 
-  // FIX: Premier League - force phrase match so Bing doesn't return "Premier Physical Therapy"
+  // FIX: Premier League - force phrase match, block empty official site
   if (/\bpremier league\b/i.test(query)) {
-    query = '"Premier League" football results';
-    // Keep user date if they typed one
+    query = '"Premier League" results scores -site:premierleague.com';
     const dm = message.match(/(\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4})/i);
     if (dm) query += ' ' + dm[1];
     else if (/\b(yesterday|today|latest|recent)\b/i.test(message)) query += ' November 2026 Matchweek 10';
     return query;
   }
 
-  // If it's a football query, force football words so Bing doesn't return currency
   const isFootball = /\b(chelsea|arsenal|manchester|liverpool|premier league|la liga|serie a|bundesliga|football|soccer|vs|versus)\b/i.test(query);
 
   if (isFootball && !/\b(result|score|football|soccer)\b/i.test(query)) {
@@ -546,7 +543,6 @@ function getSearchQuery(message) {
     query = query + ' football';
   }
 
-  // Vague yesterday
   const vagueYesterday = /\b(yesterday|today)\b/i.test(query) && /\b(football|soccer|games|matches)\b/i.test(query);
   const hasTeamOrLeague = /\b(chelsea|arsenal|premier league|la liga|serie a|bundesliga|ligue 1|champions league|nigeria|manchester|liverpool|real madrid|barcelona)\b/i.test(query);
   if (vagueYesterday && !hasTeamOrLeague) {
@@ -650,7 +646,6 @@ function instant(messages) {
 
     "who are you":
       "I'm Petrux AI, created by Peter Oriorowho."
-    // FIX: DELETED "can you search the web" / "can you search web" - they blocked real search
   };
 
   return replies[
@@ -1011,7 +1006,6 @@ async function searchBingRSS(query) {
   return results;
 }
 
-// FIX: NEW - Bing HTML first (RSS was returning stale / Physical Therapy results)
 async function searchBingHTML(query) {
   const r = await fetch(
     'https://www.bing.com/search?q=' + encodeURIComponent(query),
@@ -1078,7 +1072,6 @@ async function liveWebSearch(query) {
     `LIVE WEB SEARCH: ${cleanQuery}`
   );
 
-  // FIXED: Bing HTML first - RSS was cached/stale, DuckDuckGo fails on Render
   const attempts = [
     {
       name: 'Bing HTML',
@@ -1111,6 +1104,13 @@ async function liveWebSearch(query) {
         throw new Error(
           'No results found.'
         );
+      }
+
+      // FIX: Skip official PL site - scores are JS-only, no text to read
+      results = results.filter(r => !r.url.includes('premierleague.com'));
+
+      if (!results.length) {
+        throw new Error('Only premierleague.com results, skipping to next provider.');
       }
 
       // FIX: Drop junk like "Premier Physical Therapy" when searching football
