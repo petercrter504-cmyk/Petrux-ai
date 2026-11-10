@@ -484,12 +484,6 @@ function needsWebSearch(
     return true;
   }
 
-  const vagueMatch = /^(who won|what was the score|who scored|what happened in|who is winning).*(match|game)\b/i;
-  const hasTeam = /\b(vs|versus|against|chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|nigeria|ghana|bayern|psg|juventus|inter|milan|dortmund|tottenham|newcastle)\b/i.test(text);
-  if (vagueMatch.test(text) && !hasTeam) {
-    return 'ASK_CLARIFY';
-  }
-
   return (
     SEARCH.test(text) ||
     EXPLICIT_SEARCH.test(text)
@@ -497,11 +491,7 @@ function needsWebSearch(
 }
 
 function getSearchQuery(message) {
-  const original =
-    String(message || '')
-      .trim();
-
-  let query = original;
+  let query = String(message || '').trim();
 
   query = query
     .replace(
@@ -526,15 +516,34 @@ function getSearchQuery(message) {
     )
     .trim();
 
-  // FIX: Vague "yesterday football games" -> search for real league results
+  // FIX: Remove "who won" - Bing thinks "won" = Korean money
+  query = query
+    .replace(/^who\s+won\s+/i, '')
+    .replace(/^who\s+beat\s+/i, '')
+    .replace(/^what\s+was\s+the\s+score\s+(of|in|for)?\s*/i, '')
+    .replace(/^who\s+scored\s+/i, '')
+    .replace(/^did\s+/i, '')
+    .trim();
+
+  // If it's a football query, force football words so Bing doesn't return currency
+  const isFootball = /\b(chelsea|arsenal|manchester|liverpool|premier league|la liga|serie a|bundesliga|football|soccer|vs|versus)\b/i.test(query);
+
+  if (isFootball && !/\b(result|score|football|soccer)\b/i.test(query)) {
+    query = query + ' football result score';
+  }
+
+  if (isFootball && !/\b(football|soccer)\b/i.test(query)) {
+    query = query + ' football';
+  }
+
+  // Vague yesterday
   const vagueYesterday = /\b(yesterday|today)\b/i.test(query) && /\b(football|soccer|games|matches)\b/i.test(query);
   const hasTeamOrLeague = /\b(chelsea|arsenal|premier league|la liga|serie a|bundesliga|ligue 1|champions league|nigeria|manchester|liverpool|real madrid|barcelona)\b/i.test(query);
-
   if (vagueYesterday && !hasTeamOrLeague) {
     return query + ' Premier League La Liga Serie A results scores';
   }
 
-  return query || original;
+  return query || String(message || '').trim();
 }
 
 /* ================================
@@ -1174,6 +1183,8 @@ You MUST answer from the sources below. Never say "I don't have any match-result
 
 If a score is in the sources, state it directly. Do NOT say "I don't have the result" if any source contains a score. Only say you don't have it if NONE of the sources contain a score, and then show the closest sources you found.
 
+If the user asks for a match on a specific day (yesterday/today/date) and the sources show NO match on that day, do NOT say "check another site". Instead say clearly: "There was no [teams] match on that day" and then give the most recent result you DID find in the sources with its date, and the next fixture if you find it.
+
 When mentioning a source or URL, use only one that was actually
 provided below.
 
@@ -1444,15 +1455,6 @@ async function generate(
       lastUserMessage,
       forceSearch
     );
-
-  if (searchCheck === 'ASK_CLARIFY') {
-    return {
-      answer: "Which match do you mean? Tell me the teams and the date, e.g. 'Who won Chelsea vs Arsenal yesterday?' and I will search it for you right now.",
-      provider: 'instant',
-      searched: false,
-      sources: []
-    };
-  }
 
   const search = searchCheck === true;
 
