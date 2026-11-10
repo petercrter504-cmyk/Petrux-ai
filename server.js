@@ -448,8 +448,6 @@ setTimeout(
 const SEARCH_CAPABILITY =
   /^(can|could|do|does|are|is|will|would)\s+(you|petrux|petrux ai)\b[\s\S]*(search|browse|look\s+up|research|web|internet|online)|^(can you|could you|do you|does petrux|are you able to)\b[\s\S]*(search|browse|look\s+up|access|web|internet|online)/i;
 
-// FIXED: Added result, results, score, scores, match result so
-// "Chelsea and arsenal match result" now triggers search
 const SEARCH =
   /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking news|latest news|live score|score|scores|result|results|match result|who won|who beat|price today|current price|exchange rate|weather|forecast|standings|table|fixtures)\b/i;
 
@@ -480,15 +478,12 @@ function needsWebSearch(
     return true;
   }
 
-  // FIXED: Team name + result/score word must trigger search
-  // Example: "Chelsea and arsenal match result"
   const teamMatch = /\b(chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|bayern|psg|juventus|inter|milan|tottenham|newcastle|nigeria|ghana|dortmund)\b/i.test(text);
   const resultWord = /\b(result|results|score|scores|won|win|beat|draw)\b/i.test(text);
   if (teamMatch && resultWord) {
     return true;
   }
 
-  // Vague match questions without teams should ask for clarification
   const vagueMatch = /^(who won|what was the score|who scored|what happened in|who is winning).*(match|game)\b/i;
   const hasTeam = /\b(vs|versus|against|chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|nigeria|ghana|bayern|psg|juventus|inter|milan|dortmund|tottenham|newcastle)\b/i.test(text);
   if (vagueMatch.test(text) && !hasTeam) {
@@ -530,6 +525,14 @@ function getSearchQuery(message) {
       ''
     )
     .trim();
+
+  // FIX: Vague "yesterday football games" -> search for real league results
+  const vagueYesterday = /\b(yesterday|today)\b/i.test(query) && /\b(football|soccer|games|matches)\b/i.test(query);
+  const hasTeamOrLeague = /\b(chelsea|arsenal|premier league|la liga|serie a|bundesliga|ligue 1|champions league|nigeria|manchester|liverpool|real madrid|barcelona)\b/i.test(query);
+
+  if (vagueYesterday && !hasTeamOrLeague) {
+    return query + ' Premier League La Liga Serie A results scores';
+  }
 
   return query || original;
 }
@@ -1030,14 +1033,15 @@ async function liveWebSearch(query) {
     `LIVE WEB SEARCH: ${cleanQuery}`
   );
 
+  // FIXED: Bing first - DuckDuckGo fails on Render with "fetch failed"
   const attempts = [
-    {
-      name: 'DuckDuckGo',
-      search: searchDuckDuckGo
-    },
     {
       name: 'Bing',
       search: searchBingRSS
+    },
+    {
+      name: 'DuckDuckGo',
+      search: searchDuckDuckGo
     }
   ];
 
@@ -1060,7 +1064,6 @@ async function liveWebSearch(query) {
         );
       }
 
-      // Fetch full text from top 3 pages so Groq can see the real score
       for (let i = 0; i < Math.min(3, results.length); i++) {
         const pageText = await fetchPageText(results[i].url);
         if (pageText) {
@@ -1086,6 +1089,8 @@ async function liveWebSearch(query) {
       console.log(
         `LIVE SEARCH SUCCESS: ${results.length} results from ${attempt.name}.`
       );
+
+      console.log('WEB CONTEXT PREVIEW:', context.slice(0, 1000));
 
       return {
         results,
@@ -1164,6 +1169,8 @@ were retrieved. Real results are available for this response.
 
 Never invent sources, URLs, search results or facts that are not
 supported by the information below.
+
+You MUST answer from the sources below. Never say "I don't have any match-results information" if sources are provided. Summarize the scores you found in the sources, even if they are not the exact match the user wanted, then ask which league they want.
 
 If a score is in the sources, state it directly. Do NOT say "I don't have the result" if any source contains a score. Only say you don't have it if NONE of the sources contain a score, and then show the closest sources you found.
 
@@ -1709,8 +1716,8 @@ app.get(
           true,
 
         providers: [
-          'DuckDuckGo',
-          'Bing RSS'
+          'Bing RSS',
+          'DuckDuckGo'
         ],
 
         model:
@@ -2514,7 +2521,7 @@ app.listen(
     );
 
     console.log(
-      'Web Search: DuckDuckGo with Bing RSS fallback enabled'
+      'Web Search: Bing RSS with DuckDuckGo fallback enabled'
     );
 
     console.log(
