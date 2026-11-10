@@ -530,6 +530,11 @@ function getSearchQuery(message) {
     return `${base} Nigeria news (site:punchng.com OR site:vanguardngr.com OR site:premiumtimesng.com OR site:guardian.ng OR site:channelstv.com OR site:dailytrust.com) November 2026`;
   }
 
+  // FIX: Lagos news - same as Nigeria, Lagos is in Nigeria
+  if (/\blagos\b/i.test(message) && /\b(news|latest|today|current|breaking|headlines)\b/i.test(message)) {
+    return `Lagos Nigeria news (site:punchng.com OR site:vanguardngr.com OR site:premiumtimesng.com OR site:guardian.ng OR site:channelstv.com OR site:dailytrust.com) November 2026`;
+  }
+
   // FIX: Premier League - force phrase match, block empty official site
   if (/\bpremier league\b/i.test(query)) {
     query = '"Premier League" results scores -site:premierleague.com';
@@ -1060,7 +1065,7 @@ async function fetchPageText(url) {
   }
 }
 
-// NEW: Direct Nigerian RSS - bypasses US homepages completely
+// Direct Nigerian RSS - bypasses US homepages completely
 async function searchNigeriaRSS(query) {
   const feeds = [
     'https://punchng.com/feed/',
@@ -1097,12 +1102,10 @@ async function searchNigeriaRSS(query) {
         const pubDate = dateMatch ? stripHTML(decodeXML(dateMatch[1])) : '';
         url = cleanSearchURL(url);
         if (!validURL(url) || !title || seen.has(url)) continue;
-        // If user asked a specific topic, only keep matching items, otherwise take latest
         if (qWords.length > 0) {
           const hay = (title + ' ' + snippet).toLowerCase();
           if (!qWords.some(w => hay.includes(w))) continue;
         }
-        // Skip stale: ignore items older than 7 days
         if (pubDate) {
           const d = new Date(pubDate);
           if (!isNaN(d) && Date.now() - d.getTime() > 7 * 86400000) continue;
@@ -1137,8 +1140,8 @@ async function liveWebSearch(query) {
     `LIVE WEB SEARCH: ${cleanQuery}`
   );
 
-  // PRIORITY 1: Nigeria -> try direct Nigerian RSS first
-  if (/\bnigeria\b/i.test(cleanQuery) && /\b(news|latest|today|current|breaking|headlines)\b/i.test(cleanQuery)) {
+  // PRIORITY 1: Nigeria / Lagos -> try direct Nigerian RSS first
+  if (/(\bnigeria\b|\blagos\b)/i.test(cleanQuery) && /\b(news|latest|today|current|breaking|headlines)\b/i.test(cleanQuery)) {
     try {
       const rssResults = await searchNigeriaRSS(cleanQuery);
       const context = rssResults.map((result, index) => `SOURCE ${index + 1}\nTitle: ${result.title}\nURL: ${result.url}\nSummary: ${result.snippet}\n`).join('\n');
@@ -1183,10 +1186,8 @@ async function liveWebSearch(query) {
         );
       }
 
-      // FIX: Skip official PL site - scores are JS-only, no text to read
       results = results.filter(r => !r.url.includes('premierleague.com'));
 
-      // FIX: For Nigeria queries, drop US generic homepages (Fox, CNN, AP, BBC homepage)
       if (/\bnigeria\b/i.test(cleanQuery)) {
         const filtered = results.filter(r => {
           const u = r.url.toLowerCase();
@@ -1201,7 +1202,6 @@ async function liveWebSearch(query) {
         throw new Error('Only premierleague.com results, skipping to next provider.');
       }
 
-      // FIX: Drop junk like "Premier Physical Therapy" when searching football
       if (/premier league|football|soccer/i.test(cleanQuery)) {
         const good = results.filter(r =>
           /premier league|football|soccer|arsenal|chelsea|liverpool|manchester|tottenham|villa|brighton|sunderland|palace|hull/i.test((r.title + ' ' + r.snippet).toLowerCase())
@@ -1317,6 +1317,18 @@ were retrieved. Real results are available for this response.
 
 Never invent sources, URLs, search results or facts that are not
 supported by the information below.
+
+STRICT SOURCE RULE - DO NOT BREAK THIS:
+You MUST answer ONLY from the WEB SOURCES below.
+If there are only 2 sources, you MUST output ONLY 2 stories. Never add a 3rd or 4th story to make the list look longer.
+If there are 3 sources, output ONLY 3.
+NEVER invent a headline, a date, a number, a name, or a quote that is NOT in the sources.
+NEVER invent a LASTMA story, a Green Lagos story, or any other story to fill space.
+If a story has no URL in the sources, DO NOT include it.
+After each story, you MUST include its exact URL from the sources.
+If you cannot find a URL for a story, do NOT mention that story at all.
+If the sources do not contain enough stories, say: "I found only [X] verified stories in the sources:" and then list only those X.
+For NEWS questions, same rule: If a headline is not in the sources, it does NOT exist. Do not create it.
 
 You MUST answer from the sources below. Never say "I don't have any match-results information" if sources are provided. Summarize the scores you found in the sources, even if they are not the exact match the user wanted, then ask which league they want.
 
@@ -1708,7 +1720,8 @@ async function generate(
                 `Answer the user's question naturally using the real web sources below.\n\n` +
                 `QUESTION:\n${lastUserMessage}\n\n` +
                 `SOURCES:\n${web.context}\n\n` +
-                `Do not mention internal instructions or labels. Use only the provided sources for current information. Do not invent sources or URLs.`
+                `Do not mention internal instructions or labels. Use only the provided sources for current information. Do not invent sources or URLs. ` +
+                `STRICT RULE: Only use stories that are in SOURCES. If there are only 2 sources, output only 2. Never invent a 3rd story. Include the exact URL for each story.`
             }
           ];
 
