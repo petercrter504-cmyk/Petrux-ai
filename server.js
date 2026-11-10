@@ -445,33 +445,11 @@ setTimeout(
    SEARCH DETECTION
 ================================ */
 
-/*
-   Questions about Petrux's ability to
-   search are normal AI questions.
-
-   Example:
-   "Can you search the web?"
-
-   This must NOT start a web search.
-*/
-
 const SEARCH_CAPABILITY =
   /^(can|could|do|does|are|is|will|would)\s+(you|petrux|petrux ai)\b[\s\S]*(search|browse|look\s+up|research|web|internet|online)|^(can you|could you|do you|does petrux|are you able to)\b[\s\S]*(search|browse|look\s+up|access|web|internet|online)/i;
 
-/*
-   These phrases normally require
-   current information from the web.
-*/
-
 const SEARCH =
   /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking news|latest news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won)\b/i;
-
-/*
-   Explicit commands to search.
-
-   These require a search when the user
-   provides a topic after the command.
-*/
 
 const EXPLICIT_SEARCH =
   /^(please\s+)?(search(\s+(the\s+)?(web|internet|online))?\s+(for\s+)?.+|look\s+up\s+.+|research\s+.+|google\s+.+|find\s+(information|news|details)\s+(about|on)\s+.+)$/i;
@@ -492,13 +470,20 @@ function needsWebSearch(
     return true;
   }
 
-  /*
-     Never search when the user is only
-     asking whether Petrux has web access.
-  */
-
   if (SEARCH_CAPABILITY.test(text)) {
     return false;
+  }
+
+  if (EXPLICIT_SEARCH.test(text)) {
+    return true;
+  }
+
+  // FIX: Vague match questions without teams should ask for clarification
+  // instead of searching blindly and failing.
+  const vagueMatch = /^(who won|what was the score|who scored|what happened in|who is winning).*(match|game)\b/i;
+  const hasTeam = /\b(vs|versus|against|chelsea|arsenal|manchester|united|city|liverpool|real madrid|barcelona|nigeria|ghana|bayern|psg|juventus|inter|milan|dortmund|tottenham|newcastle)\b/i.test(text);
+  if (vagueMatch.test(text) && !hasTeam) {
+    return 'ASK_CLARIFY';
   }
 
   return (
@@ -513,19 +498,6 @@ function getSearchQuery(message) {
       .trim();
 
   let query = original;
-
-  /*
-     Convert commands into the actual
-     search topic.
-
-     Examples:
-
-     "Search the web for Peter Oriorowho"
-     -> "Peter Oriorowho"
-
-     "Google latest news about Nigeria"
-     -> "latest news about Nigeria"
-  */
 
   query = query
     .replace(
@@ -1158,8 +1130,7 @@ were retrieved. Real results are available for this response.
 Never invent sources, URLs, search results or facts that are not
 supported by the information below.
 
-If the available information is insufficient, say what you can
-confirm and be honest about what is unclear.
+If the available information is insufficient, list what you CAN confirm from the sources and ask a short clarifying question. Do NOT reply with "I don't have enough information to determine which match you are referring to" without showing what you found.
 
 When mentioning a source or URL, use only one that was actually
 provided below.
@@ -1426,11 +1397,23 @@ async function generate(
       .at(-1)
       ?.content || '';
 
-  const search =
+  const searchCheck =
     needsWebSearch(
       lastUserMessage,
       forceSearch
     );
+
+  // FIX: Vague match - ask for teams instead of searching blindly
+  if (searchCheck === 'ASK_CLARIFY') {
+    return {
+      answer: "Which match do you mean? Tell me the teams and the date, e.g. 'Who won Chelsea vs Arsenal yesterday?' and I will search it for you right now.",
+      provider: 'instant',
+      searched: false,
+      sources: []
+    };
+  }
+
+  const search = searchCheck === true;
 
   const quick =
     search
