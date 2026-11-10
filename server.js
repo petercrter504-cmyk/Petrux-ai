@@ -45,6 +45,57 @@ const PRICE = 120000;
 const DURATION = 7 * 86400000;
 const PLAN = 'petrux_pro_7_days';
 const TIMEOUT = 30000;
+
+/* ================================
+   IMAGE DAILY LIMITS
+================================ */
+const FREE_IMAGE_LIMIT = 3;
+const PRO_IMAGE_LIMIT = 30;
+
+// In-memory daily image usage.
+// Free users are identified by IP.
+// Pro users are identified by their verified email.
+const imageDailyUsage = new Map();
+
+function getImageDay() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getImageUserId(req, proUser) {
+  if (proUser && proUser.email) {
+    return `pro:${proUser.email.toLowerCase()}`;
+  }
+
+  const ip =
+    req.ip ||
+    req.socket?.remoteAddress ||
+    'unknown';
+
+  const hashedIP = crypto
+    .createHash('sha256')
+    .update(String(ip))
+    .digest('hex');
+
+  return `free:${hashedIP}`;
+}
+
+function pruneImageUsage(today) {
+  for (const key of imageDailyUsage.keys()) {
+    if (!key.startsWith(`${today}:`)) {
+      imageDailyUsage.delete(key);
+    }
+  }
+}
+
+function getImageUsage(userId, today) {
+  const key = `${today}:${userId}`;
+
+  return {
+    key,
+    used: imageDailyUsage.get(key) || 0
+  };
+}
+
 /* ================================
    PETRUX AI SYSTEM PROMPT
 ================================ */
@@ -1564,7 +1615,11 @@ app.get(
         provider:
           'Cloudflare Workers AI',
         model:
-          'FLUX.1 Schnell'
+          'FLUX.1 Schnell',
+        freeDailyLimit:
+          FREE_IMAGE_LIMIT,
+        proDailyLimit:
+          PRO_IMAGE_LIMIT
       },
       webSearch: {
         enabled:
@@ -2150,10 +2205,14 @@ async function generateCloudflareImage(prompt) {
     const e = new Error(
       `Cloudflare image generation failed (${response.status}). ${String(message).slice(0, 300)}`
     );
+
+    // Cloudflare's own quota error must not be mistaken
+    // for Petrux AI's daily free-image limit.
     e.status =
       response.status === 429
-        ? 429
+        ? 502
         : 502;
+
     throw e;
   }
   const data =
@@ -2183,38 +2242,132 @@ async function generateCloudflareImage(prompt) {
    IMAGE GENERATION
 ================================ */
 async function imageGenerationHandler(req, res) {
+  let reservedKey = null;
+
   try {
     const prompt =
       String(
         req.body.prompt || ''
       ).trim();
+
     if (!prompt) {
       return res.status(400).json({
         error:
           'Please describe the image you want to create.'
       });
     }
+
     if (prompt.length > 2048) {
       return res.status(400).json({
         error:
           'Your image description is too long. Please keep it under 2048 characters.'
       });
     }
+
+    // Verify the Pro token. If there is no valid Pro token,
+    // the request is treated as a free-user request.
+    const proUser = verifyToken(
+      bearer(req)
+    );
+
+    const isPro = !!proUser;
+    const dailyLimit = isPro
+      ? PRO_IMAGE_LIMIT
+      : FREE_IMAGE_LIMIT;
+
+    const today = getImageDay();
+
+    // Remove usage from previous days.
+    pruneImageUsage(today);
+
+    // Use verified Pro email or hashed IP as identity.
+    const userId = getImageUserId(
+      req,
+      proUser
+    );
+
+    const usage = getImageUsage(
+      userId,
+      today
+    );
+
+    // Check the daily limit before calling Cloudflare.
+    if (usage.used >= dailyLimit) {
+      return res.status(429).json({
+        success: false,
+        error: isPro
+          ? 'You have used all 30 of your Petrux Pro image generations for today. Your allowance will reset tomorrow.'
+          : 'You have used your 3 free images for today. Upgrade to Petrux Pro for 30 image generations per day.',
+        code: 'IMAGE_DAILY_LIMIT',
+        remaining: 0,
+        imagesRemaining: 0,
+        limit: dailyLimit,
+        pro: isPro
+      });
+    }
+
+    // Reserve one generation before starting the API request.
+    // This prevents simultaneous requests from exceeding the limit.
+    reservedKey = usage.key;
+
+    imageDailyUsage.set(
+      reservedKey,
+      usage.used + 1
+    );
+
+    console.log(
+      `IMAGE REQUEST: ${isPro ? 'PRO' : 'FREE'} user. ` +
+      `Daily usage: ${usage.used + 1}/${dailyLimit}.`
+    );
+
     const image =
       await generateCloudflareImage(prompt);
+
+    const currentUsage =
+      imageDailyUsage.get(reservedKey) || 0;
+
+    const remaining = Math.max(
+      0,
+      dailyLimit - currentUsage
+    );
+
+    console.log(
+      `IMAGE SUCCESS. Remaining today: ${remaining}.`
+    );
+
     return res.json({
       success: true,
       image,
       provider:
         'Cloudflare Workers AI',
       model:
-        'FLUX.1 Schnell'
+        'FLUX.1 Schnell',
+      remaining,
+      imagesRemaining: remaining,
+      limit: dailyLimit,
+      pro: isPro
     });
+
   } catch (e) {
+    // If image generation fails, return the reserved
+    // generation so the user does not lose an attempt.
+    if (reservedKey) {
+      const currentUsage =
+        imageDailyUsage.get(reservedKey) || 0;
+
+      if (currentUsage > 0) {
+        imageDailyUsage.set(
+          reservedKey,
+          currentUsage - 1
+        );
+      }
+    }
+
     console.error(
       'IMAGE GENERATION ERROR:',
       e.message
     );
+
     return error(
       res,
       e,
@@ -2222,7 +2375,10 @@ async function imageGenerationHandler(req, res) {
     );
   }
 }
+
 // Image generation is available without a Pro subscription.
+// Free users receive 3 images daily.
+// Pro users receive 30 images daily.
 app.post(
   ['/api/images', '/api/image'],
   imageGenerationHandler
@@ -2373,6 +2529,12 @@ app.listen(
     );
     console.log(
       'Pro: ₦1,200 / 7 days'
+    );
+    console.log(
+      'Free image limit: 3 per day'
+    );
+    console.log(
+      'Pro image limit: 30 per day'
     );
     console.log(
       'Creator: Peter Oriorowho'
