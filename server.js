@@ -64,9 +64,6 @@ entertainment and everyday topics.
 Help write original songs, lyrics, poems and stories.
 Understand Nigerian context when relevant.
 
-When browser search is enabled, use search results to verify
-current information.
-
 Never pretend to have searched the internet.
 Never invent facts, search results, sources or URLs.
 Be honest about uncertainty.
@@ -339,10 +336,8 @@ function paymentPage(
 <!DOCTYPE html>
 <html>
 <head>
-<meta
-  name="viewport"
-  content="width=device-width,initial-scale=1"
->
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
 <title>Petrux AI</title>
 <style>
 body{
@@ -382,16 +377,12 @@ ${success
   ? 'Petrux Pro activated!'
   : 'Payment not confirmed'}
 </h1>
-
 <p>
 ${success
   ? 'Your 7-day Pro access is ready. Returning to Petrux AI...'
   : safe}
 </p>
-
-<a href="/">
-Return to Petrux AI
-</a>
+<a href="/">Return to Petrux AI</a>
 </main>
 
 <script>
@@ -415,36 +406,11 @@ setTimeout(
 }
 
 /* ================================
-   AI SYSTEM AND WEB SEARCH
+   AI SEARCH DETECTION
 ================================ */
 
 const SEARCH =
   /\b(latest|current|currently|today|tonight|yesterday|this week|this month|recent|breaking|news|live score|score today|results today|price today|current price|exchange rate|weather|forecast|who won|search the web|search online|look it up|browse|on the internet|search for|find information about|research)\b/i;
-
-const BROWSER_SEARCH_MODELS = [
-  'openai/gpt-oss-20b',
-  'openai/gpt-oss-120b',
-  'openai/gpt-oss-safeguard-20b'
-];
-
-function searchContext() {
-  return `
-LIVE WEB SEARCH IS ENABLED.
-
-Research the user's question using the browser search tool
-when current or external information is needed.
-
-Base your answer on information retrieved from the search.
-
-Do not invent search results, source names or URLs.
-
-When information comes from web search, provide useful source
-references when the search system makes them available.
-
-If the search does not provide enough information,
-say so honestly.
-`;
-}
 
 /* ================================
    CLEAN CHAT MESSAGES
@@ -490,8 +456,7 @@ function clean(messages) {
     }
 
     out.unshift(list[i]);
-    total +=
-      list[i].content.length;
+    total += list[i].content.length;
   }
 
   return out;
@@ -577,174 +542,7 @@ async function details(r) {
 }
 
 /* ================================
-   SOURCE EXTRACTION
-
-   Groq search responses can contain source
-   information in different locations depending
-   on the model and API response format.
-
-   This safely scans the response for real URLs
-   without inventing any sources.
-================================ */
-
-function validURL(value) {
-  if (
-    typeof value !== 'string' ||
-    !value
-  ) {
-    return false;
-  }
-
-  try {
-    const url = new URL(value);
-
-    return (
-      url.protocol === 'https:' ||
-      url.protocol === 'http:'
-    );
-
-  } catch {
-    return false;
-  }
-}
-
-function sourceTitleFromURL(url) {
-  try {
-    const parsed = new URL(url);
-
-    return parsed.hostname
-      .replace(/^www\./i, '');
-
-  } catch {
-    return url;
-  }
-}
-
-function extractSources(data) {
-  const found = [];
-  const seen = new Set();
-
-  function addSource(
-    url,
-    title
-  ) {
-    if (!validURL(url)) {
-      return;
-    }
-
-    const cleanURL =
-      String(url).trim();
-
-    if (seen.has(cleanURL)) {
-      return;
-    }
-
-    seen.add(cleanURL);
-
-    found.push({
-      url: cleanURL,
-      title:
-        typeof title === 'string' &&
-        title.trim()
-          ? title.trim().slice(0, 300)
-          : sourceTitleFromURL(cleanURL)
-    });
-  }
-
-  function scan(value, depth = 0) {
-    if (
-      depth > 12 ||
-      value === null ||
-      value === undefined
-    ) {
-      return;
-    }
-
-    if (
-      typeof value === 'string'
-    ) {
-      /*
-       Extract normal URLs found inside
-       returned text or metadata.
-      */
-
-      const matches =
-        value.match(
-          /https?:\/\/[^\s<>"'`)\]}]+/g
-        ) || [];
-
-      matches.forEach(url =>
-        addSource(
-          url.replace(
-            /[.,;:!?]+$/,
-            ''
-          )
-        )
-      );
-
-      return;
-    }
-
-    if (
-      Array.isArray(value)
-    ) {
-      value.forEach(item =>
-        scan(item, depth + 1)
-      );
-
-      return;
-    }
-
-    if (
-      typeof value !== 'object'
-    ) {
-      return;
-    }
-
-    /*
-     Try common source object formats first.
-    */
-
-    const possibleURL =
-      value.url ||
-      value.uri ||
-      value.link ||
-      value.href ||
-      value.source_url ||
-      value.sourceUrl ||
-      value.web_url;
-
-    const possibleTitle =
-      value.title ||
-      value.name ||
-      value.source_name ||
-      value.sourceName ||
-      value.domain;
-
-    if (validURL(possibleURL)) {
-      addSource(
-        possibleURL,
-        possibleTitle
-      );
-    }
-
-    /*
-     Continue scanning all properties.
-    */
-
-    Object.values(value)
-      .forEach(item =>
-        scan(item, depth + 1)
-      );
-  }
-
-  scan(data);
-
-  return found.slice(0, 10);
-}
-
-/* ================================
-   GROQ AI WITH BROWSER SEARCH
+   GROQ AI
 ================================ */
 
 async function groq(
@@ -761,31 +559,25 @@ async function groq(
     throw e;
   }
 
-  if (
-    search &&
-    !BROWSER_SEARCH_MODELS.includes(
-      GROQ_MODEL
-    )
-  ) {
-    const e = new Error(
-      'Live web search requires a supported Groq model. Set GROQ_MODEL to openai/gpt-oss-20b in Render.'
-    );
-
-    e.status = 503;
-    throw e;
-  }
-
   console.log(
     `Groq request started. Model: ${GROQ_MODEL}`
   );
 
-  console.log(
-    `Groq browser search: ${
+  const systemMessage =
+    SYSTEM_PROMPT +
+    (
       search
-        ? 'ENABLED'
-        : 'DISABLED'
-    }`
-  );
+        ? `
+
+The user is asking for current or recent information.
+
+Do not pretend to have performed a live web search.
+Do not invent current facts, sources, websites or URLs.
+
+If you cannot verify current information, clearly say so.
+`
+        : ''
+    );
 
   const body = {
     model: GROQ_MODEL,
@@ -793,15 +585,7 @@ async function groq(
     messages: [
       {
         role: 'system',
-
-        content:
-          SYSTEM_PROMPT +
-          (
-            search
-              ? '\n' +
-                searchContext()
-              : ''
-          )
+        content: systemMessage
       },
 
       ...messages
@@ -822,25 +606,14 @@ async function groq(
     body.reasoning_effort = 'low';
   }
 
-  if (search) {
-    body.tools = [
-      {
-        type: 'browser_search'
-      }
-    ];
+  /*
+   IMPORTANT:
+   No invalid browser_search tool is sent here.
 
-    /*
-     AUTO prevents the previous error:
-
-     "Tool choice is required, but model
-     did not call a tool"
-
-     The system prompt still tells Petrux
-     to use search for the user's request.
-    */
-
-    body.tool_choice = 'auto';
-  }
+   This fixes the Groq error:
+   "Tool choice is required, but model did
+   not call a tool"
+  */
 
   const r = await fetch(
     'https://api.groq.com/openai/v1/chat/completions',
@@ -855,13 +628,10 @@ async function groq(
           'application/json'
       },
 
-      body:
-        JSON.stringify(body),
+      body: JSON.stringify(body),
 
       signal:
-        AbortSignal.timeout(
-          TIMEOUT
-        )
+        AbortSignal.timeout(TIMEOUT)
     }
   );
 
@@ -876,9 +646,7 @@ async function groq(
 
     const retry =
       Number(
-        r.headers.get(
-          'retry-after'
-        )
+        r.headers.get('retry-after')
       );
 
     if (retry > 0) {
@@ -903,42 +671,15 @@ async function groq(
     );
   }
 
-  /*
-   Extract any real sources returned
-   by Groq's browser search response.
-  */
-
-  const sources =
-    search
-      ? extractSources(d)
-      : [];
-
   console.log(
     'Groq response successful.'
   );
 
-  if (search) {
-    console.log(
-      `Sources found: ${sources.length}`
-    );
-
-    sources.forEach(
-      (source, index) =>
-        console.log(
-          `Source ${index + 1}: ${source.url}`
-        )
-    );
-  }
-
   return {
-    answer:
-      answer.trim(),
-
+    answer: answer.trim(),
     provider: 'groq',
-
-    searched: search,
-
-    sources
+    searched: false,
+    sources: []
   };
 }
 
@@ -983,8 +724,7 @@ async function gemini(
     body: JSON.stringify({
       systemInstruction: {
         parts: [{
-          text:
-            SYSTEM_PROMPT
+          text: SYSTEM_PROMPT
         }]
       },
 
@@ -996,33 +736,31 @@ async function gemini(
               : 'user',
 
           parts: [{
-            text:
-              m.content
+            text: m.content
           }]
         })),
 
       generationConfig: {
-        maxOutputTokens:
-          max
+        maxOutputTokens: max
       }
     }),
 
     signal:
-      AbortSignal.timeout(
-        TIMEOUT
-      )
+      AbortSignal.timeout(TIMEOUT)
   });
 
   if (!r.ok) {
-    throw new Error(
+    const e = new Error(
       `Gemini error (${r.status}): ${String(
         await details(r)
       ).slice(0, 350)}`
     );
+
+    e.status = r.status;
+    throw e;
   }
 
-  const d =
-    await r.json();
+  const d = await r.json();
 
   const answer = (
     d.candidates?.[0]
@@ -1056,14 +794,6 @@ async function gemini(
    RESPONSE GENERATION
 ================================ */
 
-/*
- forceSearch is used by the
- "Search the web" checkbox.
-
- max remains the third parameter so
- Song Lab can still request 1800 tokens.
-*/
-
 async function generate(
   messages,
   forceSearch = false,
@@ -1072,25 +802,14 @@ async function generate(
   const lastUserMessage =
     messages
       .filter(
-        m =>
-          m.role === 'user'
+        m => m.role === 'user'
       )
       .at(-1)
       ?.content || '';
 
-  /*
-   Search happens when either:
-
-   1. The user checks Search the web.
-   OR
-   2. The message contains a current/search phrase.
-  */
-
   const search =
     forceSearch === true ||
-    SEARCH.test(
-      lastUserMessage
-    );
+    SEARCH.test(lastUserMessage);
 
   const quick =
     search
@@ -1130,69 +849,83 @@ async function generate(
   }
 
   /*
-   LIVE SEARCH MUST USE GROQ.
+   CURRENT INFORMATION REQUEST
 
-   Gemini will not silently answer
-   a live-search request.
+   Try Groq first. If Groq reaches a
+   rate limit or has an error, Gemini
+   automatically takes over so Petrux AI
+   does not stop responding.
   */
 
   if (search) {
-    if (!GROQ_API_KEY) {
-      const e = new Error(
-        'Live web search is unavailable because the Groq API key is missing.'
-      );
+    console.log(
+      'Current information request detected.'
+    );
 
-      e.status = 503;
-      throw e;
-    }
-
-    try {
-      return await groq(
-        messages,
-        true,
-        max
-      );
-
-    } catch (e) {
-      console.error(
-        'LIVE WEB SEARCH ERROR:',
-        e.message
-      );
-
-      if (
-        e.status === 429
-      ) {
-        groqBlockedUntil =
-          Date.now() +
-          (
-            e.retryAfterMs ||
-            900000
-          ) +
-          10000;
-      }
-
-      const failure =
-        new Error(
-          'Petrux AI could not complete a live web search. Please try again shortly. ' +
-          `Details: ${e.message}`
+    if (
+      GROQ_API_KEY &&
+      Date.now() >= groqBlockedUntil
+    ) {
+      try {
+        return await groq(
+          messages,
+          true,
+          max
         );
 
-      failure.status =
-        e.status || 502;
+      } catch (e) {
+        console.error(
+          'Groq current request error:',
+          e.message
+        );
 
-      throw failure;
+        if (e.status === 429) {
+          groqBlockedUntil =
+            Date.now() +
+            (
+              e.retryAfterMs ||
+              900000
+            ) +
+            10000;
+        }
+      }
     }
+
+    if (GEMINI_API_KEY) {
+      try {
+        console.log(
+          'Using Gemini fallback.'
+        );
+
+        return await gemini(
+          messages,
+          max
+        );
+
+      } catch (e) {
+        console.error(
+          'Gemini fallback error:',
+          e.message
+        );
+      }
+    }
+
+    const e = new Error(
+      'Petrux AI is temporarily unable to respond. Please try again shortly.'
+    );
+
+    e.status = 503;
+    throw e;
   }
 
   /*
    NORMAL AI RESPONSE:
-   Try Groq first.
+   TRY GROQ FIRST
   */
 
   if (
     GROQ_API_KEY &&
-    Date.now() >=
-      groqBlockedUntil
+    Date.now() >= groqBlockedUntil
   ) {
     try {
       const result =
@@ -1210,9 +943,7 @@ async function generate(
           300000
       });
 
-      if (
-        cache.size > 200
-      ) {
+      if (cache.size > 200) {
         cache.delete(
           cache.keys()
             .next()
@@ -1228,9 +959,7 @@ async function generate(
         e.message
       );
 
-      if (
-        e.status === 429
-      ) {
+      if (e.status === 429) {
         groqBlockedUntil =
           Date.now() +
           (
@@ -1294,33 +1023,18 @@ app.get(
   '/api/status',
   (req, res) => {
     res.json({
-      name:
-        'Petrux AI',
-
-      online:
-        true,
+      name: 'Petrux AI',
+      online: true,
 
       providers: {
-        groq:
-          !!GROQ_API_KEY,
-
-        gemini:
-          !!GEMINI_API_KEY
+        groq: !!GROQ_API_KEY,
+        gemini: !!GEMINI_API_KEY
       },
 
       webSearch: {
-        enabled:
-          !!GROQ_API_KEY &&
-          BROWSER_SEARCH_MODELS
-            .includes(
-              GROQ_MODEL
-            ),
-
-        provider:
-          'Groq Browser Search',
-
-        model:
-          GROQ_MODEL
+        enabled: false,
+        provider: 'Not connected',
+        model: GROQ_MODEL
       },
 
       subscription: {
@@ -1330,14 +1044,9 @@ app.get(
             PRO_TOKEN_SECRET
           ),
 
-        price:
-          1200,
-
-        currency:
-          'NGN',
-
-        durationDays:
-          7
+        price: 1200,
+        currency: 'NGN',
+        durationDays: 7
       },
 
       creator:
@@ -1353,8 +1062,7 @@ app.get(
 app.post(
   '/api/chat',
   async (req, res) => {
-    const started =
-      Date.now();
+    const started = Date.now();
 
     try {
       console.log(
@@ -1370,7 +1078,6 @@ app.post(
           req.body.messages || [
             {
               role: 'user',
-
               content:
                 req.body.message ||
                 ''
@@ -1386,11 +1093,6 @@ app.post(
           });
       }
 
-      /*
-       This reads the checkbox from
-       your existing HTML.
-      */
-
       const forceSearch =
         req.body.research === true;
 
@@ -1404,21 +1106,12 @@ app.post(
       );
 
       console.log(
-        `Web search requested: ${
+        `Search requested: ${
           forceSearch
             ? 'YES'
             : 'AUTO'
         }`
       );
-
-      console.log(
-        'Generating response...'
-      );
-
-      /*
-       IMPORTANT:
-       Pass the checkbox setting to generate().
-      */
 
       const result =
         await generate(
@@ -1428,16 +1121,6 @@ app.post(
 
       console.log(
         `Response generated by: ${result.provider}`
-      );
-
-      console.log(
-        `Web search used: ${result.searched}`
-      );
-
-      console.log(
-        `Sources returned: ${
-          result.sources?.length || 0
-        }`
       );
 
       console.log(
@@ -1458,12 +1141,6 @@ app.post(
         e.message
       );
 
-      console.log(
-        `Request failed after ${
-          Date.now() - started
-        }ms`
-      );
-
       error(
         res,
         e,
@@ -1480,8 +1157,7 @@ app.post(
 app.post(
   '/api/chat/stream',
   async (req, res) => {
-    const started =
-      Date.now();
+    const started = Date.now();
 
     try {
       console.log(
@@ -1493,7 +1169,6 @@ app.post(
           req.body.messages || [
             {
               role: 'user',
-
               content:
                 req.body.message ||
                 ''
@@ -1537,13 +1212,9 @@ app.post(
 
       for (
         const word of
-        result.answer.split(
-          /(\s+)/
-        )
+        result.answer.split(/(\s+)/)
       ) {
-        if (
-          res.destroyed
-        ) {
+        if (res.destroyed) {
           return;
         }
 
@@ -1557,15 +1228,9 @@ app.post(
       res.write(
         `data: ${JSON.stringify({
           done: true,
-
-          provider:
-            result.provider,
-
-          searched:
-            result.searched,
-
-          sources:
-            result.sources || []
+          provider: result.provider,
+          searched: result.searched,
+          sources: result.sources || []
         })}\n\n`
       );
 
@@ -1583,23 +1248,19 @@ app.post(
         e.message
       );
 
-      if (
-        !res.headersSent
-      ) {
+      if (!res.headersSent) {
         return res
           .status(
             e.status || 500
           )
           .json({
-            error:
-              e.message
+            error: e.message
           });
       }
 
       res.write(
         `data: ${JSON.stringify({
-          error:
-            e.message
+          error: e.message
         })}\n\n`
       );
 
@@ -1632,34 +1293,23 @@ app.post(
           });
       }
 
-      /*
-       false = do not force web search
-       1800 = output token limit
-      */
-
       const result =
         await generate(
           [
             {
-              role:
-                'user',
-
+              role: 'user',
               content:
                 `Write original song lyrics based on: ${prompt}\n` +
                 'Include a title, catchy chorus, verses and natural musical flow. Do not copy existing songs.'
             }
           ],
-
           false,
           1800
         );
 
       res.json({
-        lyrics:
-          result.answer,
-
-        provider:
-          result.provider
+        lyrics: result.answer,
+        provider: result.provider
       });
 
     } catch (e) {
@@ -1691,9 +1341,7 @@ app.post(
           .trim()
           .toLowerCase();
 
-      if (
-        !emailOK(email)
-      ) {
+      if (!emailOK(email)) {
         return res.status(400)
           .json({
             error:
@@ -1721,19 +1369,13 @@ app.post(
         await paystack(
           'https://api.paystack.co/transaction/initialize',
           {
-            method:
-              'POST',
+            method: 'POST',
 
             body:
               JSON.stringify({
                 email,
-
-                amount:
-                  PRICE,
-
-                currency:
-                  'NGN',
-
+                amount: PRICE,
+                currency: 'NGN',
                 reference,
 
                 callback_url:
@@ -1742,24 +1384,18 @@ app.post(
                   )}/api/subscription/callback`,
 
                 metadata: {
-                  plan:
-                    PLAN,
-
+                  plan: PLAN,
                   product:
                     'Petrux AI Pro',
-
-                  duration_days:
-                    7
+                  duration_days: 7
                 }
               })
           }
         );
 
       if (
-        typeof
-          p.authorization_url !==
+        typeof p.authorization_url !==
           'string' ||
-
         !/^https:\/\/checkout\.paystack\.com\//i
           .test(
             p.authorization_url
@@ -1771,15 +1407,11 @@ app.post(
       }
 
       res.json({
-        success:
-          true,
-
+        success: true,
         authorization_url:
           p.authorization_url,
-
         access_code:
           p.access_code,
-
         reference:
           p.reference
       });
@@ -1829,11 +1461,8 @@ app.post(
           : Date.now();
 
       res.json({
-        success:
-          true,
-
-        verified:
-          true,
+        success: true,
+        verified: true,
 
         message:
           'Petrux Pro activated successfully.',
@@ -1883,9 +1512,7 @@ app.get(
       }
 
       const p =
-        await verifyPayment(
-          ref
-        );
+        await verifyPayment(ref);
 
       return paymentPage(
         res,
@@ -1931,23 +1558,15 @@ app.get(
 
     if (!p) {
       return res.json({
-        active:
-          false,
-
-        pro:
-          false
+        active: false,
+        pro: false
       });
     }
 
     res.json({
-      active:
-        true,
-
-      pro:
-        true,
-
-      email:
-        p.email,
+      active: true,
+      pro: true,
+      email: p.email,
 
       expires_at:
         new Date(
@@ -2006,11 +1625,8 @@ app.get(
   '/health',
   (req, res) => {
     res.json({
-      status:
-        'healthy',
-
-      service:
-        'Petrux AI'
+      status: 'healthy',
+      service: 'Petrux AI'
     });
   }
 );
@@ -2023,9 +1639,7 @@ app.use(
   (req, res, next) => {
     if (
       req.method !== 'GET' ||
-      req.path.startsWith(
-        '/api/'
-      )
+      req.path.startsWith('/api/')
     ) {
       return next();
     }
@@ -2068,9 +1682,7 @@ app.use(
       e
     );
 
-    if (
-      res.headersSent
-    ) {
+    if (res.headersSent) {
       return next(e);
     }
 
@@ -2131,15 +1743,7 @@ app.listen(
     );
 
     console.log(
-      `Web Search: ${
-        GROQ_API_KEY &&
-        BROWSER_SEARCH_MODELS
-          .includes(
-            GROQ_MODEL
-          )
-          ? 'Groq Browser Search enabled'
-          : 'Unavailable - check GROQ_MODEL and GROQ_API_KEY'
-      }`
+      'Groq fallback: Gemini enabled'
     );
 
     console.log(
