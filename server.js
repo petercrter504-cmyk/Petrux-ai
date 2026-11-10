@@ -18,7 +18,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 
 const GROQ_MODEL =
   process.env.GROQ_MODEL ||
-  'openai/gpt-oss-20b';
+  'openai/gpt-oss-120b';
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || '';
@@ -523,6 +523,12 @@ function getSearchQuery(message) {
     .replace(/^who\s+scored\s+/i, '')
     .replace(/^did\s+/i, '')
     .trim();
+
+  // FIX: Nigeria news - force Nigerian sources, block US homepages
+  if (/\bnigeria\b/i.test(message) && /\b(news|latest|today|current|breaking|headlines)\b/i.test(message)) {
+    const base = query.replace(/\b(latest news in|latest news|news in|news)\b/gi, '').trim() || 'Nigeria';
+    return `${base} Nigeria news (site:punchng.com OR site:vanguardngr.com OR site:premiumtimesng.com OR site:guardian.ng OR site:channelstv.com OR site:dailytrust.com) November 2026`;
+  }
 
   // FIX: Premier League - force phrase match, block empty official site
   if (/\bpremier league\b/i.test(query)) {
@@ -1054,6 +1060,65 @@ async function fetchPageText(url) {
   }
 }
 
+// NEW: Direct Nigerian RSS - bypasses US homepages completely
+async function searchNigeriaRSS(query) {
+  const feeds = [
+    'https://punchng.com/feed/',
+    'https://www.vanguardngr.com/feed/',
+    'https://www.premiumtimesng.com/feed/',
+    'https://guardian.ng/feed/',
+    'https://www.channelstv.com/feed/',
+    'https://dailytrust.com/feed/'
+  ];
+  const results = [];
+  const seen = new Set();
+  const qWords = String(query || '').toLowerCase().split(/\s+/).filter(w => w.length > 3 && !['nigeria','latest','news','today','current'].includes(w));
+
+  for (const feedUrl of feeds) {
+    try {
+      const r = await fetch(feedUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PetruxAI/1.0)', 'Accept': 'application/rss+xml,application/xml,text/xml,*/*' },
+        signal: AbortSignal.timeout(12000)
+      });
+      if (!r.ok) continue;
+      const xml = await r.text();
+      const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
+      let item;
+      let count = 0;
+      while ((item = itemPattern.exec(xml)) !== null && count < 6) {
+        const block = item[1];
+        const titleMatch = block.match(/<title>([\s\S]*?)<\/title>/i);
+        const linkMatch = block.match(/<link>([\s\S]*?)<\/link>/i);
+        const descMatch = block.match(/<description>([\s\S]*?)<\/description>/i);
+        const dateMatch = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/i);
+        const title = titleMatch ? stripHTML(decodeXML(titleMatch[1])).slice(0, 300) : '';
+        let url = linkMatch ? decodeXML(linkMatch[1]).trim() : '';
+        const snippet = descMatch ? stripHTML(decodeXML(descMatch[1])).slice(0, 700) : '';
+        const pubDate = dateMatch ? stripHTML(decodeXML(dateMatch[1])) : '';
+        url = cleanSearchURL(url);
+        if (!validURL(url) || !title || seen.has(url)) continue;
+        // If user asked a specific topic, only keep matching items, otherwise take latest
+        if (qWords.length > 0) {
+          const hay = (title + ' ' + snippet).toLowerCase();
+          if (!qWords.some(w => hay.includes(w))) continue;
+        }
+        // Skip stale: ignore items older than 7 days
+        if (pubDate) {
+          const d = new Date(pubDate);
+          if (!isNaN(d) && Date.now() - d.getTime() > 7 * 86400000) continue;
+        }
+        seen.add(url);
+        results.push({ title, url, snippet: (pubDate ? `Published: ${pubDate}. ` : '') + snippet });
+        count++;
+        if (results.length >= 8) break;
+      }
+      if (results.length >= 8) break;
+    } catch {}
+  }
+  if (!results.length) throw new Error('No Nigerian RSS results');
+  return results;
+}
+
 async function liveWebSearch(query) {
   const cleanQuery =
     String(query || '')
@@ -1071,6 +1136,18 @@ async function liveWebSearch(query) {
   console.log(
     `LIVE WEB SEARCH: ${cleanQuery}`
   );
+
+  // PRIORITY 1: Nigeria -> try direct Nigerian RSS first
+  if (/\bnigeria\b/i.test(cleanQuery) && /\b(news|latest|today|current|breaking|headlines)\b/i.test(cleanQuery)) {
+    try {
+      const rssResults = await searchNigeriaRSS(cleanQuery);
+      const context = rssResults.map((result, index) => `SOURCE ${index + 1}\nTitle: ${result.title}\nURL: ${result.url}\nSummary: ${result.snippet}\n`).join('\n');
+      console.log(`LIVE SEARCH SUCCESS: ${rssResults.length} results from Nigeria RSS.`);
+      return { results: rssResults, context, provider: 'Nigeria RSS (Punch/Vanguard/Premium Times)' };
+    } catch (e) {
+      console.error('Nigeria RSS failed, falling back to Bing:', e.message);
+    }
+  }
 
   const attempts = [
     {
@@ -1108,6 +1185,17 @@ async function liveWebSearch(query) {
 
       // FIX: Skip official PL site - scores are JS-only, no text to read
       results = results.filter(r => !r.url.includes('premierleague.com'));
+
+      // FIX: For Nigeria queries, drop US generic homepages (Fox, CNN, AP, BBC homepage)
+      if (/\bnigeria\b/i.test(cleanQuery)) {
+        const filtered = results.filter(r => {
+          const u = r.url.toLowerCase();
+          const isHomepage = /^(https?:\/\/)?(www\.)?(foxnews\.com|cnn\.com|apnews\.com|bbc\.com|nytimes\.com)\/?$/.test(u);
+          const isNigerian = /punchng|vanguardngr|premiumtimesng|guardian\.ng|channelstv|dailytrust|businessday|thecable|leadership\.ng|sunnewsonline|tribuneonlineng/.test(u);
+          return isNigerian || !isHomepage;
+        });
+        if (filtered.length > 0) results = filtered;
+      }
 
       if (!results.length) {
         throw new Error('Only premierleague.com results, skipping to next provider.');
@@ -1776,6 +1864,7 @@ app.get(
           true,
 
         providers: [
+          'Nigeria RSS',
           'Bing HTML',
           'Bing RSS',
           'DuckDuckGo'
@@ -2582,7 +2671,7 @@ app.listen(
     );
 
     console.log(
-      'Web Search: Bing HTML + Bing RSS with DuckDuckGo fallback enabled'
+      'Web Search: Nigeria RSS + Bing HTML + Bing RSS with DuckDuckGo fallback enabled'
     );
 
     console.log(
