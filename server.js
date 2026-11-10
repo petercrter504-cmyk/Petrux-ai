@@ -2180,7 +2180,7 @@ async function generateCloudflareImage(prompt) {
   );
 }
 /* ================================
-   PRO IMAGE GENERATION
+   IMAGE GENERATION
 ================================ */
 async function imageGenerationHandler(req, res) {
   try {
@@ -2222,9 +2222,9 @@ async function imageGenerationHandler(req, res) {
     );
   }
 }
+// Image generation is available without a Pro subscription.
 app.post(
   ['/api/images', '/api/image'],
-  requirePro,
   imageGenerationHandler
 );
 /* ================================
